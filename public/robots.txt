@@ -1,0 +1,9 @@
+# *
+User-agent: *
+Allow: /
+
+# Host
+Host: https://digitalbusinessassets.com
+
+# Sitemaps
+Sitemap: https://digitalbusinessassets.com/sitemap.xml
