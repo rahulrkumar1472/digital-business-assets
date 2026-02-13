@@ -16,8 +16,8 @@ export default function BlogPage() {
       <SectionBlock className="pt-18 md:pt-24">
         <MotionReveal className="max-w-5xl">
           <p className="text-xs font-semibold tracking-[0.2em] text-cyan-300 uppercase">Blog</p>
-          <h1 className="mt-3 text-4xl font-semibold text-white md:text-6xl">50 launch guides for AI revenue implementation</h1>
-          <p className="mt-4 text-sm leading-relaxed text-slate-300 md:text-lg">Clustered content designed to support search coverage, buyer education, and conversion-first internal linking.</p>
+          <h1 className="mt-3 text-4xl font-semibold text-white md:text-6xl">Business Growth Library</h1>
+          <p className="mt-4 text-sm leading-relaxed text-slate-300 md:text-lg">Action-first insights for UK business owners who want better lead flow, faster response, and stronger conversion systems.</p>
           <div className="mt-5 flex flex-wrap gap-2 text-xs text-slate-300">
             {clusters.map((cluster) => (
               <span key={cluster} className="rounded-full border border-slate-700 bg-slate-900/50 px-3 py-1">{cluster}</span>

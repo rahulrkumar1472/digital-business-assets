@@ -34,6 +34,8 @@ export async function POST(request: Request) {
       phone: string;
       company: string;
       website?: string;
+      industry?: string;
+      goals?: string;
     };
 
     const booking = await createBooking(body);

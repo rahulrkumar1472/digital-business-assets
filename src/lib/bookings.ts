@@ -11,6 +11,8 @@ export type BookingRecord = {
   phone: string;
   company: string;
   website?: string;
+  industry?: string;
+  goals?: string;
   createdAt: string;
 };
 
@@ -75,6 +77,8 @@ type CreateBookingInput = {
   phone: string;
   company: string;
   website?: string;
+  industry?: string;
+  goals?: string;
 };
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -105,6 +109,10 @@ export async function createBooking(input: CreateBookingInput) {
     throw new Error("Website must start with http:// or https://");
   }
 
+  if (input.goals && input.goals.length > 1200) {
+    throw new Error("Goals should be 1200 characters or fewer.");
+  }
+
   const bookings = await readBookings();
   const slotKey = buildSlotKey(input.date, input.time);
 
@@ -122,6 +130,8 @@ export async function createBooking(input: CreateBookingInput) {
     phone: input.phone.trim(),
     company: input.company.trim(),
     website: input.website?.trim(),
+    industry: input.industry?.trim(),
+    goals: input.goals?.trim(),
     createdAt: new Date().toISOString(),
   };
 
@@ -143,7 +153,7 @@ export async function listBookings() {
 }
 
 export function toCsv(bookings: BookingRecord[]) {
-  const headers = ["id", "date", "time", "name", "email", "phone", "company", "website", "createdAt"];
+  const headers = ["id", "date", "time", "name", "email", "phone", "company", "website", "industry", "goals", "createdAt"];
   const rows = bookings.map((booking) =>
     [
       booking.id,
@@ -154,6 +164,8 @@ export function toCsv(bookings: BookingRecord[]) {
       booking.phone,
       booking.company,
       booking.website || "",
+      booking.industry || "",
+      booking.goals || "",
       booking.createdAt,
     ]
       .map((value) => `"${String(value).replaceAll('"', '""')}"`)

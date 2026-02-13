@@ -13,6 +13,7 @@ type BookingFormProps = {
     revenue?: string;
     leads?: string;
     score?: string;
+    goals?: string;
   };
 };
 
@@ -22,6 +23,8 @@ type FormState = {
   phone: string;
   company: string;
   website: string;
+  industry: string;
+  goals: string;
 };
 
 const initialState: FormState = {
@@ -30,6 +33,8 @@ const initialState: FormState = {
   phone: "",
   company: "",
   website: "",
+  industry: "",
+  goals: "",
 };
 
 export function BookingForm({ prefill }: BookingFormProps) {
@@ -38,7 +43,19 @@ export function BookingForm({ prefill }: BookingFormProps) {
   const [selectedDate, setSelectedDate] = useState("");
   const [times, setTimes] = useState<string[]>([]);
   const [selectedTime, setSelectedTime] = useState("");
-  const [form, setForm] = useState<FormState>(initialState);
+  const [form, setForm] = useState<FormState>(() => ({
+    ...initialState,
+    industry: prefill?.industry || "",
+    goals:
+      prefill?.goals ||
+      [
+        prefill?.revenue ? `Current monthly revenue: £${prefill.revenue}` : "",
+        prefill?.leads ? `Monthly leads: ${prefill.leads}` : "",
+        prefill?.score ? `Simulator score: ${prefill.score}` : "",
+      ]
+        .filter(Boolean)
+        .join(" | "),
+  }));
   const [loadingTimes, setLoadingTimes] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -121,9 +138,11 @@ export function BookingForm({ prefill }: BookingFormProps) {
         id: string;
         date: string;
         time: string;
-        name: string;
-        email: string;
-      };
+      name: string;
+      email: string;
+      industry?: string;
+      goals?: string;
+    };
     };
 
     if (!response.ok || !data.success || !data.booking) {
@@ -144,8 +163,9 @@ export function BookingForm({ prefill }: BookingFormProps) {
       time: data.booking.time,
       name: data.booking.name,
       email: data.booking.email,
-      industry: prefill?.industry || "",
+      industry: form.industry || prefill?.industry || "",
       score: prefill?.score || "",
+      goals: form.goals,
     });
 
     router.push(`/book/confirmation?${query.toString()}`);
@@ -219,6 +239,21 @@ export function BookingForm({ prefill }: BookingFormProps) {
       <div className="space-y-2">
         <label className="text-xs font-semibold tracking-[0.08em] text-slate-300 uppercase">Website (optional)</label>
         <Input value={form.website} onChange={(event) => updateField("website", event.target.value)} className="border-slate-700 bg-slate-950/50 text-slate-100" placeholder="https://example.co.uk" />
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-xs font-semibold tracking-[0.08em] text-slate-300 uppercase">Industry</label>
+        <Input value={form.industry} onChange={(event) => updateField("industry", event.target.value)} className="border-slate-700 bg-slate-950/50 text-slate-100" placeholder="e.g. Plumber, Dentist, Gym" />
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-xs font-semibold tracking-[0.08em] text-slate-300 uppercase">Primary goals</label>
+        <textarea
+          value={form.goals}
+          onChange={(event) => updateField("goals", event.target.value)}
+          className="min-h-24 w-full rounded-md border border-slate-700 bg-slate-950/50 px-3 py-2 text-sm text-slate-100"
+          placeholder="Tell us your biggest blocker and what outcome you want in the next 30 days."
+        />
       </div>
 
       {error ? <p className="text-xs text-red-300">{error}</p> : null}

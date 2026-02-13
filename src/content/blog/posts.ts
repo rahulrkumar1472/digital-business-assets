@@ -4,6 +4,7 @@ type ClusterConfig = {
   key: string;
   label: string;
   serviceLink: string;
+  industryLink: string;
   simulatorAngle: string;
   topics: string[];
   infographic: string;
@@ -14,6 +15,7 @@ const clusters: ClusterConfig[] = [
     key: "websites",
     label: "Websites",
     serviceLink: "/services/websites-in-72-hours",
+    industryLink: "/industries/local-services",
     simulatorAngle: "conversion-first website architecture",
     infographic: "/media/infographic-websites.svg",
     topics: [
@@ -33,6 +35,7 @@ const clusters: ClusterConfig[] = [
     key: "seo-aeo",
     label: "SEO & AEO",
     serviceLink: "/services/seo-aeo",
+    industryLink: "/industries/health-wellness-clinics",
     simulatorAngle: "search and AI answer visibility",
     infographic: "/media/infographic-seo-aeo.svg",
     topics: [
@@ -52,6 +55,7 @@ const clusters: ClusterConfig[] = [
     key: "automation-crm",
     label: "Automation & CRM",
     serviceLink: "/services/automations-workflows",
+    industryLink: "/industries/trades-home-services",
     simulatorAngle: "pipeline automation and follow-up speed",
     infographic: "/media/infographic-automation-crm.svg",
     topics: [
@@ -71,6 +75,7 @@ const clusters: ClusterConfig[] = [
     key: "chatbots-ai-receptionist",
     label: "Chatbots & AI Receptionist",
     serviceLink: "/services/ai-chatbots",
+    industryLink: "/industries/estate-agents",
     simulatorAngle: "24/7 AI-assisted lead capture",
     infographic: "/media/infographic-chatbots.svg",
     topics: [
@@ -90,6 +95,7 @@ const clusters: ClusterConfig[] = [
     key: "playbooks",
     label: "Case Studies & Playbooks",
     serviceLink: "/case-studies",
+    industryLink: "/industries/local-services",
     simulatorAngle: "industry-specific deployment playbooks",
     infographic: "/media/infographic-playbooks.svg",
     topics: [
@@ -115,11 +121,13 @@ function slugify(value: string) {
 }
 
 function buildSectionBody(topic: string, cluster: ClusterConfig, sectionHeading: string) {
-  return [
-    `Most UK business owners do not need more random tactics around ${topic.toLowerCase()}; they need a repeatable system that links attention, response, qualification, booking, and reporting into one operating model. In practice, the biggest leak appears when teams rely on memory and manual follow-up, because enquiries slow down the moment staff are on-site, in consultations, or handling delivery.`,
-    `A stronger approach is to treat ${sectionHeading.toLowerCase()} as a measurable workflow with clear ownership rules, timing thresholds, and escalation logic. We map each stage, define what counts as a qualified opportunity, and then install the exact conversion assets needed to move people forward quickly. This is why we pair strategic planning with implementation, not disconnected advice sessions.`,
-    `For operators, the key advantage is clarity: every lead source is tagged, every response window is visible, and every no-response event triggers automation. That means fewer missed opportunities, higher booking quality, and less admin overhead. If this is the current bottleneck in your business, review [our service module](${cluster.serviceLink}), benchmark your numbers in [the growth simulator](/growth-simulator), then secure rollout sequencing on [the booking page](/book).`,
-  ].join(" ");
+  const paragraphs = [
+    `Business owners usually hit the same wall with ${topic.toLowerCase()}: effort increases, but growth stalls because the funnel leaks at several points. Leads arrive from search, referrals, social, and paid channels, yet response speed varies by day, qualification standards drift, and follow-up depends on memory. That means high-intent enquiries cool down while faster competitors take the sale.`,
+    `The fix is not another random tactic. The fix is a system. We treat ${sectionHeading.toLowerCase()} as an operating workflow with ownership rules, timing thresholds, and escalation triggers your team can follow under pressure. We map where demand enters, how leads are tagged, how quickly they are contacted, and what happens when a response is delayed. Then we install automation, reminders, and reporting so execution stays consistent during busy periods.`,
+    `Execution decides outcomes. Start with [the matching service module](${cluster.serviceLink}), benchmark bottlenecks in [the growth simulator](/growth-simulator), and compare deployment patterns on [your industry page](${cluster.industryLink}). If you want guided rollout, use [the booking page](/book) and we will map a practical 30-day sequence tied to commercial impact. The goal is simple: faster response, better booking quality, and clear visibility from lead to revenue.`,
+  ];
+
+  return paragraphs.join(" ");
 }
 
 function buildSections(topic: string, cluster: ClusterConfig) {
@@ -132,6 +140,7 @@ function buildSections(topic: string, cluster: ClusterConfig) {
     "Measurement Framework",
     "Risk Controls",
     "Optimisation Cycle",
+    "30-Day Execution Blueprint",
   ];
 
   return sectionHeadings.map((heading) => ({
@@ -142,6 +151,7 @@ function buildSections(topic: string, cluster: ClusterConfig) {
       "Set response-time thresholds and escalation conditions",
       "Track conversion from first enquiry to confirmed booking",
       "Review outcomes weekly and adjust scripts, flows, and offers",
+      "Keep internal links between services, industries, and case studies active",
     ],
   }));
 }
@@ -154,17 +164,18 @@ function buildPost(cluster: ClusterConfig, topic: string, index: number): BlogPo
   const slug = slugify(`${cluster.key}-${topic}`);
   const sections = buildSections(topic, cluster);
   const publishedAt = new Date(publishedBase.getTime() + index * 86400000).toISOString();
+  const imageIndex = String(index + 1).padStart(2, "0");
 
   return {
     slug,
     title: topic,
     excerpt:
       "A practical, conversion-first guide for UK SMEs that want measurable growth from websites, automation, and AI workflow systems.",
-    coverImage: "/media/blog-cover-placeholder.jpg",
+    coverImage: `/media/blog/${cluster.key}-${imageIndex}.svg`,
     author: launchAuthor,
     publishedAt,
-    readTime: "9 min read",
-    tags: [cluster.label, "AI Revenue System", "SME Growth"],
+    readTime: "12 min read",
+    tags: [cluster.label, "AI Revenue System", "SME Growth", topic.split(" ")[0] || "Playbook"],
     cluster: cluster.label,
     infographicImage: cluster.infographic,
     summary:
@@ -175,7 +186,7 @@ function buildPost(cluster: ClusterConfig, topic: string, index: number): BlogPo
         headline: "Need this implemented, not just planned?",
         body: "We can deploy the same framework with your offers, tools, and team workflow so results are measurable from week one.",
         primaryLabel: "Get Your Growth Plan",
-        primaryHref: "/contact",
+        primaryHref: "/growth-simulator",
         secondaryLabel: "Book Strategy Call",
         secondaryHref: "/book",
       },
@@ -192,7 +203,9 @@ function buildPost(cluster: ClusterConfig, topic: string, index: number): BlogPo
   };
 }
 
-const generatedPosts = clusters.flatMap((cluster) => cluster.topics.map((topic, index) => buildPost(cluster, topic, index)));
+const generatedPosts = clusters.flatMap((cluster) =>
+  cluster.topics.map((topic, index) => buildPost(cluster, topic, index)),
+);
 
 export const blogPosts: BlogPost[] = generatedPosts;
 
@@ -204,9 +217,16 @@ export function getRelatedBlogPosts(post: BlogPost, limit = 3) {
   return blogPosts
     .filter((candidate) => candidate.slug !== post.slug)
     .sort((a, b) => {
-      const aScore = a.cluster === post.cluster ? 2 : 0;
-      const bScore = b.cluster === post.cluster ? 2 : 0;
-      return bScore - aScore;
+      const aSharedTags = a.tags.filter((tag) => post.tags.includes(tag)).length;
+      const bSharedTags = b.tags.filter((tag) => post.tags.includes(tag)).length;
+      const aScore = (a.cluster === post.cluster ? 5 : 0) + aSharedTags;
+      const bScore = (b.cluster === post.cluster ? 5 : 0) + bSharedTags;
+
+      if (bScore !== aScore) {
+        return bScore - aScore;
+      }
+
+      return b.publishedAt.localeCompare(a.publishedAt);
     })
     .slice(0, limit);
 }

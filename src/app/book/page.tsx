@@ -38,6 +38,7 @@ type BookPageProps = {
     score?: string;
     revenue?: string;
     leads?: string;
+    goals?: string;
   }>;
 };
 
@@ -83,7 +84,7 @@ export default async function BookPage({ searchParams }: BookPageProps) {
               <h2 className="text-2xl font-semibold text-white">Select a slot and confirm details</h2>
               <p className="mt-2 text-sm text-slate-300">Availability is live: Mon-Sun, 09:00-19:00, 30-minute slots.</p>
               <div className="mt-6">
-                <BookingForm prefill={{ industry: params.industry, revenue: params.revenue, leads: params.leads, score: params.score }} />
+                <BookingForm prefill={{ industry: params.industry, revenue: params.revenue, leads: params.leads, score: params.score, goals: params.goals }} />
               </div>
             </div>
           </MotionReveal>

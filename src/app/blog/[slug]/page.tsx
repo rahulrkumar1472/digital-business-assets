@@ -97,7 +97,10 @@ export default async function BlogPostDetailPage({ params }: BlogPostDetailPageP
 
       <SectionBlock className="pt-4">
         <div className="mx-auto max-w-4xl overflow-hidden rounded-2xl border border-slate-800">
-          <ImageOrPlaceholder src={post.infographicImage || "/media/blog-cover-placeholder.jpg"} alt={`${post.title} infographic`} label={post.cluster || "Infographic"} className="aspect-[16/9] h-full w-full" sizes="(min-width: 1024px) 70vw, 100vw" />
+          <ImageOrPlaceholder src={post.coverImage} alt={`${post.title} feature`} label={post.cluster || "Insight"} className="aspect-[16/9] h-full w-full" sizes="(min-width: 1024px) 70vw, 100vw" />
+        </div>
+        <div className="mx-auto mt-4 max-w-4xl overflow-hidden rounded-2xl border border-slate-800">
+          <ImageOrPlaceholder src={post.infographicImage || "/media/blog/websites-01.svg"} alt={`${post.title} infographic`} label={post.cluster || "Infographic"} className="aspect-[16/9] h-full w-full" sizes="(min-width: 1024px) 70vw, 100vw" />
         </div>
       </SectionBlock>
 

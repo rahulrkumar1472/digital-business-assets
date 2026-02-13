@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Manrope, Space_Grotesk } from "next/font/google";
 
+import { MobileOverflowHelper } from "@/components/dev/mobile-overflow-helper";
+import { MobileStickyFooter } from "@/components/layout/mobile-sticky-footer";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { ChatWidget } from "@/components/chat/chat-widget";
@@ -47,10 +49,12 @@ export default function RootLayout({
         <div className="relative min-h-screen overflow-x-hidden">
           <PremiumBackground />
           <SiteHeader />
-          <main>{children}</main>
+          <main className="pb-[calc(5.4rem+env(safe-area-inset-bottom))] lg:pb-0">{children}</main>
           <SiteFooter />
+          <MobileStickyFooter />
           <GuaranteeOfferPopup />
           <ChatWidget />
+          <MobileOverflowHelper />
         </div>
       </body>
     </html>

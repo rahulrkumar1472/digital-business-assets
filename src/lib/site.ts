@@ -16,6 +16,7 @@ export const siteConfig = {
 export const primaryNavigation = [
   { label: "Services", href: "/services" },
   { label: "Growth Simulator", href: "/growth-simulator" },
+  { label: "Website Audit", href: "/website-audit" },
   { label: "Industries", href: "/industries" },
   { label: "Case Studies", href: "/case-studies" },
   { label: "Pricing", href: "/pricing" },

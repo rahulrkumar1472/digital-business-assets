@@ -110,7 +110,7 @@ export function articleSchema({
   description,
   path,
   publishedAt,
-  image = "/media/blog-cover-placeholder.jpg",
+  image = "/media/blog/websites-01.svg",
   author = "Digital Business Assets Team",
 }: ArticleSchemaInput) {
   return {

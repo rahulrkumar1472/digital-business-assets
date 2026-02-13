@@ -1,5 +1,6 @@
 import { MotionReveal } from "@/components/marketing/motion-reveal";
 import { AutomationFlowDiagram } from "@/components/marketing/automation-flow-diagram";
+import { ContentSection } from "@/components/marketing/content-section";
 import { FunnelDiagram } from "@/components/marketing/funnel-diagram";
 import { ImageOrPlaceholder } from "@/components/marketing/image-or-placeholder";
 import { KPICharts } from "@/components/marketing/kpi-charts";
@@ -35,29 +36,30 @@ export function DeepSeoContent({ topic, audience, image = "/media/hero-ai.jpg" }
     <div className="space-y-12">
       {sectionFrames.map((frame, index) => (
         <MotionReveal key={frame} delay={index * 0.03}>
-          <section className="rounded-3xl border border-slate-800 bg-slate-900/45 p-6 md:p-8">
-            <h2 className="text-3xl font-semibold text-white md:text-4xl">
-              {topic}: {frame}
-            </h2>
-            <p className="mt-4 text-sm leading-relaxed text-slate-300 md:text-base">{paragraph(topic, audience, frame, index)}</p>
-            <p className="mt-4 text-sm leading-relaxed text-slate-300 md:text-base">{paragraph(topic, audience, frame, index + 1)}</p>
-            <p className="mt-4 text-sm leading-relaxed text-slate-300 md:text-base">{paragraph(topic, audience, frame, index + 2)}</p>
-
-            <div className="mt-6 grid gap-4 lg:grid-cols-2">
-              {index % 3 === 0 ? <FunnelDiagram /> : null}
-              {index % 3 === 1 ? <AutomationFlowDiagram /> : null}
-              {index % 3 === 2 ? <KPICharts /> : null}
-              <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/55">
-                <ImageOrPlaceholder
-                  src={image}
-                  alt={`${topic} visual ${index + 1}`}
-                  label={topic}
-                  className="aspect-[16/10] h-full w-full"
-                  sizes="(min-width: 1024px) 45vw, 100vw"
-                />
+          <ContentSection
+            heading={`${topic}: ${frame}`}
+            paragraphs={[
+              paragraph(topic, audience, frame, index),
+              paragraph(topic, audience, frame, index + 1),
+              paragraph(topic, audience, frame, index + 2),
+            ]}
+            visual={
+              <div className="grid gap-4 lg:grid-cols-2">
+                {index % 3 === 0 ? <FunnelDiagram /> : null}
+                {index % 3 === 1 ? <AutomationFlowDiagram /> : null}
+                {index % 3 === 2 ? <KPICharts /> : null}
+                <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/55">
+                  <ImageOrPlaceholder
+                    src={image}
+                    alt={`${topic} visual ${index + 1}`}
+                    label={topic}
+                    className="aspect-[16/10] h-full w-full"
+                    sizes="(min-width: 1024px) 45vw, 100vw"
+                  />
+                </div>
               </div>
-            </div>
-          </section>
+            }
+          />
         </MotionReveal>
       ))}
     </div>

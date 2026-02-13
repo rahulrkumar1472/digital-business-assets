@@ -24,6 +24,7 @@ const starterMessage =
 const quickPrompts = [
   "We are missing too many leads",
   "Our follow-up process is too slow",
+  "I'm a plumber and missed calls are killing sales",
   "I need a 30-day growth plan",
 ];
 
@@ -36,6 +37,7 @@ export function ChatWidget() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [leadCaptured, setLeadCaptured] = useState(false);
+  const [showNudge, setShowNudge] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
     { id: "welcome", role: "assistant", content: starterMessage },
   ]);
@@ -52,6 +54,21 @@ export function ChatWidget() {
       behavior: "smooth",
     });
   }, [messages, isLoading]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setShowNudge(false);
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setShowNudge(true);
+    }, 6000);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [isOpen, messages.length]);
 
   const sendMessage = async (rawText: string) => {
     const text = rawText.trim();
@@ -126,6 +143,7 @@ export function ChatWidget() {
     setIsOpen((previous) => {
       const next = !previous;
       if (next) {
+        setShowNudge(false);
         trackEvent("chatbot_open", {
           source: "floating_widget",
         });
@@ -140,16 +158,28 @@ export function ChatWidget() {
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: "easeOut" }}
-        className="fixed right-4 bottom-4 z-[70] sm:right-6 sm:bottom-6"
+        className="fixed right-4 bottom-[calc(5.85rem+env(safe-area-inset-bottom))] z-[70] sm:right-6 sm:bottom-24 lg:bottom-6"
       >
+        <AnimatePresence>
+          {showNudge ? (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              className="mb-2 ml-auto max-w-[220px] rounded-xl border border-cyan-500/35 bg-slate-950/95 px-3 py-2 text-xs text-cyan-100 shadow-[0_0_20px_rgba(34,211,238,0.25)]"
+            >
+              Want a free growth plan?
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
         <Button
           onClick={handleOpen}
           className="group h-12 rounded-full border border-cyan-400/40 bg-slate-950/90 px-4 text-slate-100 shadow-[0_0_30px_rgba(34,211,238,0.32)] backdrop-blur transition-all hover:-translate-y-0.5 hover:shadow-[0_0_45px_rgba(34,211,238,0.45)]"
           variant="outline"
         >
           <motion.span
-            animate={{ y: [0, -2, 0] }}
-            transition={{ duration: 2.4, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+            animate={showNudge ? { y: [0, -2.6, 0], scale: [1, 1.05, 1] } : { y: [0, -1.8, 0] }}
+            transition={{ duration: showNudge ? 1.5 : 2.4, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
             className="mr-2 inline-flex size-7 items-center justify-center rounded-full bg-cyan-500/20"
           >
             <Bot className="size-4 text-cyan-300" />
@@ -166,7 +196,7 @@ export function ChatWidget() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 14, scale: 0.98 }}
             transition={{ duration: 0.24, ease: "easeOut" }}
-            className="fixed right-4 bottom-20 z-[80] flex h-[min(70vh,640px)] w-[min(430px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-950/95 shadow-[0_30px_90px_rgba(2,6,23,0.8)] backdrop-blur sm:right-6"
+            className="fixed right-4 bottom-[calc(7.1rem+env(safe-area-inset-bottom))] z-[80] flex h-[min(70vh,640px)] w-[min(430px,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-950/95 shadow-[0_30px_90px_rgba(2,6,23,0.8)] backdrop-blur sm:right-6 lg:bottom-20"
           >
             <div className="flex items-center justify-between border-b border-slate-800/90 bg-slate-950/92 px-4 py-3">
               <div>
@@ -251,6 +281,7 @@ export function ChatWidget() {
                   Book a call
                 </Link>
               </div>
+              <p className="mt-2 text-[11px] text-slate-500">Want me to connect you to a real consultant? Say “handoff”.</p>
             </div>
           </motion.aside>
         ) : null}

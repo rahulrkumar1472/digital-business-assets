@@ -17,6 +17,7 @@ type ConfirmationPageProps = {
     email?: string;
     industry?: string;
     score?: string;
+    goals?: string;
   }>;
 };
 
@@ -41,6 +42,7 @@ export default async function BookingConfirmationPage({ searchParams }: Confirma
             <p><span className="text-slate-400">Time:</span> {params.time || "Not provided"}</p>
             {params.industry ? <p><span className="text-slate-400">Industry:</span> {params.industry}</p> : null}
             {params.score ? <p><span className="text-slate-400">Simulator Score:</span> {params.score}</p> : null}
+            {params.goals ? <p><span className="text-slate-400">Goals:</span> {params.goals}</p> : null}
           </div>
 
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">

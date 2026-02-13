@@ -210,7 +210,20 @@ function inferFallbackProfile(messages: ChatMessage[]): FallbackProfile {
   const joined = userMessages.join(" ").toLowerCase();
 
   const industries = listIndustryNames();
-  const matchedIndustry = industries.find((industry) => joined.includes(industry.toLowerCase()));
+  const industrySynonyms: Array<{ name: string; aliases: string[] }> = [
+    { name: "Trades", aliases: ["plumber", "roofer", "electrician", "builder", "hvac", "gas engineer", "trades"] },
+    { name: "Clinics", aliases: ["clinic", "physio", "wellness", "osteopath"] },
+    { name: "Gyms", aliases: ["gym", "fitness", "personal trainer", "pt"] },
+    { name: "Dentists", aliases: ["dentist", "dental", "orthodontic"] },
+    { name: "Law Firms", aliases: ["law", "solicitor", "legal"] },
+    { name: "Real Estate", aliases: ["estate agency", "estate agent", "lettings", "property"] },
+    { name: "Ecom", aliases: ["ecommerce", "e-commerce", "shopify", "online store"] },
+    { name: "Local Services", aliases: ["local service", "home services", "service business"] },
+  ];
+
+  const mappedIndustry =
+    industrySynonyms.find((entry) => entry.aliases.some((alias) => joined.includes(alias)))?.name ||
+    industries.find((industry) => joined.includes(industry.toLowerCase()));
 
   const blockers = ["traffic", "lead quality", "conversion", "follow-up", "all of it", "missed calls", "bookings"];
   const blocker = blockers.find((candidate) => joined.includes(candidate));
@@ -228,7 +241,7 @@ function inferFallbackProfile(messages: ChatMessage[]): FallbackProfile {
   const timelineMatch = userMessages.join(" ").match(/(?:timeline|timeframe)\s*(?:is|:)?\s*([A-Za-z0-9,\s-]{2,40})/i);
 
   return {
-    industry: matchedIndustry,
+    industry: mappedIndustry,
     monthlyRevenue:
       extractNumericValue(joined, /(?:monthly revenue|revenue)\D*([0-9][0-9,]{2,})/i) ??
       extractNumericValue(joined, /£\s*([0-9][0-9,]{2,})/i),
@@ -287,12 +300,22 @@ async function fallbackConsultantFlow(request: Request, messages: ChatMessage[])
   });
 
   const leadRequired = !profile.name || !profile.email || !profile.phone || !profile.company;
+  const lowerIndustry = (profile.industry || "").toLowerCase();
+  const industryDiagnosis = lowerIndustry.includes("trades")
+    ? "For trades businesses, leaks usually come from missed calls, slow quote follow-up, and weak review-driven trust."
+    : lowerIndustry.includes("dentist")
+      ? "For dental teams, no-show prevention and consultation follow-up are normally the biggest revenue leaks."
+      : lowerIndustry.includes("law")
+        ? "For legal intake, delays in qualification and callback speed usually reduce consultation conversion."
+        : lowerIndustry.includes("estate")
+          ? "For estate agencies, out-of-hours valuation enquiries and delayed routing are common leakage points."
+          : "Your funnel likely leaks at response speed, follow-up consistency, and booking friction.";
 
   if (leadRequired) {
     return {
-      message: `Diagnosis: your main leaks are response delay, follow-up inconsistency, and booking friction.\n\nRecommended next stack: ${JSON.stringify(
+      message: `${industryDiagnosis}\n\nRecommended stack: ${JSON.stringify(
         recommendation,
-      )}\n\nIf you want the 30-day action plan, share name, email, phone, company, website, budget range, and timeline.`,
+      )}\n\nI can map your 30-day action plan next. Share name, email, phone, company, website, budget range, and timeline.`,
       leadCaptured: false,
       usedFallback: true,
     };
@@ -314,7 +337,7 @@ async function fallbackConsultantFlow(request: Request, messages: ChatMessage[])
 
   return {
     message:
-      "Great, I have saved your details and mapped your likely leaks. Next step: book your strategy session here /book so we can finalise your 30-day implementation plan.",
+      "Great, I have saved your details and mapped your likely leaks. Want me to connect you to a real consultant now? Book your strategy session at /book and we will finalise your 30-day implementation plan.",
     leadCaptured:
       Boolean(saveResult) &&
       typeof saveResult === "object" &&

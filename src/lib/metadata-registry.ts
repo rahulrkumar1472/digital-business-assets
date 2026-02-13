@@ -129,13 +129,31 @@ const staticRoutes: RouteMetadataEntry[] = [
     image: "/media/hero-dashboard.jpg",
   },
   {
+    path: "/website-audit",
+    title: toTitle("Website Audit Report Tool"),
+    description: toDescription(
+      "Generate a bespoke website audit with speed checks, SEO findings, screenshots, and practical next actions tailored to your UK business and growth goals.",
+      "/website-audit",
+    ),
+    image: "/media/dashboard-1.jpg",
+  },
+  {
+    path: "/admin/bookings",
+    title: toTitle("Bookings Admin Dashboard"),
+    description: toDescription(
+      "Protected admin area for viewing and exporting booked strategy sessions, including slot details and lead context captured from growth workflows.",
+      "/admin/bookings",
+    ),
+    image: "/media/dashboard-2.jpg",
+  },
+  {
     path: "/blog",
     title: toTitle("AI Revenue Blog for UK SMEs"),
     description: toDescription(
       "Read practical playbooks on websites, SEO/AEO, automation, chatbots, CRM, and industry growth systems designed for UK SME owners and operators.",
       "/blog",
     ),
-    image: "/media/blog-cover-placeholder.jpg",
+    image: "/media/blog/websites-01.svg",
   },
   {
     path: "/privacy",

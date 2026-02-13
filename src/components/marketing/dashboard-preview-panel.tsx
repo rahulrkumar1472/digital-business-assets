@@ -74,7 +74,7 @@ export function DashboardPreviewPanel() {
 
         <div className="mt-4 rounded-xl border border-slate-800 bg-slate-900/65 p-3">
           <p className="text-xs text-slate-400">Pipeline</p>
-          <div className="mt-3 flex items-center gap-2 text-[11px]">
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px]">
             {[
               ["New", "26"],
               ["Contacted", "19"],

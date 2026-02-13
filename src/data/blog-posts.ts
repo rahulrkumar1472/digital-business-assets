@@ -6,7 +6,7 @@ export const blogPosts: BlogPost[] = [
     title: "Why UK SMEs lose high-intent leads after hours",
     excerpt:
       "A practical breakdown of where enquiries leak and how to fix follow-up speed without adding headcount.",
-    coverImage: "/stock/services-automation.jpg",
+    coverImage: "/media/services-automation.jpg",
     author: "Digital Business Assets Team",
     publishedAt: "2026-01-15",
     readTime: "6 min read",
@@ -34,7 +34,7 @@ export const blogPosts: BlogPost[] = [
     title: "AEO for local service businesses: what changes in 2026",
     excerpt:
       "How to structure your service pages so AI assistants can cite your business with confidence.",
-    coverImage: "/stock/services-seo.jpg",
+    coverImage: "/media/services-seo.jpg",
     author: "Digital Business Assets Team",
     publishedAt: "2026-01-05",
     readTime: "7 min read",
@@ -62,7 +62,7 @@ export const blogPosts: BlogPost[] = [
     title: "CRM pipeline design for small teams that move fast",
     excerpt:
       "A lean CRM model for owners who want clarity, accountability, and cleaner conversion reporting.",
-    coverImage: "/stock/services-automation.jpg",
+    coverImage: "/media/services-automation.jpg",
     author: "Digital Business Assets Team",
     publishedAt: "2025-12-20",
     readTime: "5 min read",
@@ -90,7 +90,7 @@ export const blogPosts: BlogPost[] = [
     title: "Website in 72 hours: our sprint playbook",
     excerpt:
       "How we scope, write, build, and launch conversion-focused websites in three days.",
-    coverImage: "/stock/services-web.jpg",
+    coverImage: "/media/services-web.jpg",
     author: "Digital Business Assets Team",
     publishedAt: "2025-12-01",
     readTime: "8 min read",

@@ -89,6 +89,9 @@
     @apply min-h-full;
     background: #05060a;
     color: #e7e7ea;
+    overflow-x: hidden;
+    max-width: 100%;
+    color-scheme: dark;
   }
 
   body {
@@ -100,6 +103,33 @@
       radial-gradient(circle at 45% 90%, rgba(30, 41, 59, 0.24), transparent 40%);
     background-attachment: fixed;
     position: relative;
+  }
+
+  img,
+  svg,
+  video,
+  canvas,
+  iframe {
+    max-width: 100%;
+  }
+
+  .overflow-qa-outline {
+    outline: 1px solid rgba(248, 113, 113, 0.92) !important;
+    outline-offset: -1px;
+  }
+
+  .overflow-qa-badge {
+    position: fixed;
+    left: 0.75rem;
+    bottom: 0.75rem;
+    z-index: 95;
+    border-radius: 9999px;
+    border: 1px solid rgba(248, 113, 113, 0.45);
+    background: rgba(127, 29, 29, 0.7);
+    padding: 0.3rem 0.6rem;
+    font-size: 11px;
+    color: #fecaca;
+    backdrop-filter: blur(6px);
   }
 
   body::before {

@@ -16,6 +16,8 @@ export function KPICharts() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // Recharts should only render after hydration to avoid SSR id mismatches.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
