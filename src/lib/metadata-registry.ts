@@ -120,6 +120,42 @@ const staticRoutes: RouteMetadataEntry[] = [
     image: "/media/services-automation.jpg",
   },
   {
+    path: "/bespoke-plan",
+    title: toTitle("Create Bespoke Growth Plan"),
+    description: toDescription(
+      "Create your bespoke growth plan by sharing your business stage, goals, and blockers, then get routed to Track 1 or Track 2 with clear next deployment actions.",
+      "/bespoke-plan",
+    ),
+    image: "/media/hero-dashboard.jpg",
+  },
+  {
+    path: "/signup",
+    title: toTitle("Sign Up to Business OS"),
+    description: toDescription(
+      "Create your Business OS account, choose a plan tier, and unlock dashboard access for reports, leads, and deployment workflows built for UK SME growth operations.",
+      "/signup",
+    ),
+    image: "/media/dashboard-2.jpg",
+  },
+  {
+    path: "/login",
+    title: toTitle("Login to Business OS"),
+    description: toDescription(
+      "Log in to Business OS to review scan reports, monitor captured leads, and execute your next growth steps with track-aware recommendations and clear module priorities.",
+      "/login",
+    ),
+    image: "/media/dashboard-2.jpg",
+  },
+  {
+    path: "/thanks",
+    title: toTitle("Bespoke Plan Submitted"),
+    description: toDescription(
+      "Your bespoke plan request has been submitted. Continue to your recommended track, run diagnostics, or book a strategy call to finalise your Business OS rollout plan.",
+      "/thanks",
+    ),
+    image: "/media/hero-dashboard.jpg",
+  },
+  {
     path: "/about",
     title: toTitle("About Business OS Team"),
     description: toDescription(

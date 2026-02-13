@@ -14,6 +14,8 @@ import { ProofCard } from "@/components/marketing/proof-card";
 import { SectionBlock } from "@/components/marketing/section-block";
 import { SystemDiagram } from "@/components/marketing/system-diagram";
 import { JsonLd } from "@/components/shared/json-ld";
+import { RecommendedNextStep } from "@/components/funnel/next-step";
+import { AddToPlanButton } from "@/components/cart/add-to-plan-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -108,6 +110,7 @@ export default async function ServiceDetailPage({ params }: ServiceDetailPagePro
               <Button asChild variant="outline" className="border-slate-700 bg-slate-900/55 text-slate-100 hover:bg-slate-800">
                 <Link href="/tools/website-audit/start">Start free website scan</Link>
               </Button>
+              <AddToPlanButton slug={service.slug} title={service.title} price={service.entryPrice} />
             </div>
           </MotionReveal>
 
@@ -258,6 +261,10 @@ export default async function ServiceDetailPage({ params }: ServiceDetailPagePro
 
       <SectionBlock>
         <DeepSeoContent topic={`${service.title} delivery playbook`} audience="Business owners choosing practical implementation over vague strategy" image={service.image} />
+      </SectionBlock>
+
+      <SectionBlock className="py-6">
+        <RecommendedNextStep />
       </SectionBlock>
 
       <SectionBlock>

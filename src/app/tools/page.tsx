@@ -7,6 +7,7 @@ import { SectionBlock } from "@/components/marketing/section-block";
 import { StepperQuiz } from "@/components/marketing/stepper-quiz";
 import { SystemDiagram } from "@/components/marketing/system-diagram";
 import { Button } from "@/components/ui/button";
+import { RecommendedNextStep } from "@/components/funnel/next-step";
 import { buildMetadata } from "@/lib/seo";
 
 export const metadata = buildMetadata({ path: "/tools" });
@@ -133,6 +134,10 @@ export default function ToolsHubPage() {
           title="Run diagnosis first, then pay only for needed installs"
           description="Tools are your filter. You choose modules with clear from-pricing once you know where the biggest leak is."
         />
+      </SectionBlock>
+
+      <SectionBlock className="py-6">
+        <RecommendedNextStep />
       </SectionBlock>
     </>
   );

@@ -6,8 +6,11 @@ import { MobileStickyFooter } from "@/components/layout/mobile-sticky-footer";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { ChatWidget } from "@/components/chat/chat-widget";
+import { FunnelProvider } from "@/components/funnel/funnel-provider";
 import { GuaranteeOfferPopup } from "@/components/marketing/guarantee-offer-popup";
 import { PremiumBackground } from "@/components/marketing/premium-background";
+import { Breadcrumbs } from "@/components/nav/breadcrumbs";
+import { BreadcrumbSchema } from "@/components/seo/breadcrumb-schema";
 import { JsonLd } from "@/components/shared/json-ld";
 import { buildMetadata } from "@/lib/seo";
 import { organizationSchema, websiteSchema } from "@/lib/schema";
@@ -46,16 +49,20 @@ export default function RootLayout({
       <body className={`${bodyFont.variable} ${headingFont.variable} bg-[#05060a] text-[#e7e7ea] antialiased`}>
         <JsonLd data={organizationSchema()} />
         <JsonLd data={websiteSchema()} />
-        <div className="relative min-h-screen overflow-x-hidden">
-          <PremiumBackground />
-          <SiteHeader />
-          <main className="pb-[calc(5.4rem+env(safe-area-inset-bottom))] lg:pb-0">{children}</main>
-          <SiteFooter />
-          <MobileStickyFooter />
-          <GuaranteeOfferPopup />
-          <ChatWidget />
-          <MobileOverflowHelper />
-        </div>
+        <FunnelProvider>
+          <div className="relative min-h-screen overflow-x-hidden">
+            <PremiumBackground />
+            <SiteHeader />
+            <BreadcrumbSchema />
+            <Breadcrumbs />
+            <main className="pb-[calc(5.4rem+env(safe-area-inset-bottom))] lg:pb-0">{children}</main>
+            <SiteFooter />
+            <MobileStickyFooter />
+            <GuaranteeOfferPopup />
+            <ChatWidget />
+            <MobileOverflowHelper />
+          </div>
+        </FunnelProvider>
       </body>
     </html>
   );

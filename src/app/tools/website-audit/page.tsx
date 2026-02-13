@@ -8,6 +8,7 @@ import { VideoSection } from "@/components/marketing/video-section";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { buildMetadata } from "@/lib/seo";
+import { RecommendedNextStep } from "@/components/funnel/next-step";
 
 export const metadata = buildMetadata({ path: "/tools/website-audit" });
 
@@ -149,6 +150,10 @@ export default function ToolsWebsiteAuditPage() {
           description="After your free report, you choose installs from £399-£599 and optional monthly support when you want ongoing optimisation."
           compact
         />
+      </SectionBlock>
+
+      <SectionBlock className="py-6">
+        <RecommendedNextStep />
       </SectionBlock>
     </>
   );

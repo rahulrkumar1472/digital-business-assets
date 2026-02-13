@@ -10,6 +10,7 @@ import { OutcomeCard } from "@/components/marketing/outcome-card";
 import { SectionBlock } from "@/components/marketing/section-block";
 import { SystemDiagram } from "@/components/marketing/system-diagram";
 import { TrackTile } from "@/components/marketing/track-tile";
+import { RecommendedNextStep } from "@/components/funnel/next-step";
 import { JsonLd } from "@/components/shared/json-ld";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -164,6 +165,10 @@ export default function ServicesPage() {
 
       <SectionBlock>
         <DeepSeoContent topic="Business OS service selection" audience="Business owners deciding what module to deploy first" image="/media/services-automation.jpg" />
+      </SectionBlock>
+
+      <SectionBlock className="py-6">
+        <RecommendedNextStep />
       </SectionBlock>
 
       <SectionBlock>

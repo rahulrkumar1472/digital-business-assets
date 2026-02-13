@@ -14,6 +14,7 @@ import { StepperQuiz } from "@/components/marketing/stepper-quiz";
 import { SystemDiagram } from "@/components/marketing/system-diagram";
 import { TrackTile } from "@/components/marketing/track-tile";
 import { DashboardPreviewPanel } from "@/components/marketing/dashboard-preview-panel";
+import { RecommendedNextStep } from "@/components/funnel/next-step";
 import { JsonLd } from "@/components/shared/json-ld";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -314,6 +315,10 @@ export default function HomePage() {
           audience="Business owners deciding between launching fast or scanning and fixing underperforming systems"
           image="/media/hero-dashboard.jpg"
         />
+      </SectionBlock>
+
+      <SectionBlock className="py-6">
+        <RecommendedNextStep />
       </SectionBlock>
 
       <SectionBlock>

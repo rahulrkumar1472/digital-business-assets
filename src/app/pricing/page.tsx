@@ -12,6 +12,7 @@ import { TrackTile } from "@/components/marketing/track-tile";
 import { JsonLd } from "@/components/shared/json-ld";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { RecommendedNextStep } from "@/components/funnel/next-step";
 import { services } from "@/data";
 import { pricingFaqs } from "@/data/page-faqs";
 import { buildMetadata } from "@/lib/seo";
@@ -212,6 +213,10 @@ export default function PricingPage() {
           audience="UK business owners who want transparent growth-system budgets"
           image="/media/services-automation.jpg"
         />
+      </SectionBlock>
+
+      <SectionBlock className="py-6">
+        <RecommendedNextStep />
       </SectionBlock>
 
       <SectionBlock>
