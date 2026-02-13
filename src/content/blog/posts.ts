@@ -108,7 +108,7 @@ const clusters: ClusterConfig[] = [
       "Ecommerce Service Layer Playbook for High-Ticket",
       "Local Services Response-Time Sprint Playbook",
       "Revenue Dashboard Rollout for Owner-Led Teams",
-      "Scaling from £99 Plan to Full Growth Stack",
+      "Scaling from £79 Plan to Full Growth Stack",
     ],
   },
 ];

@@ -1,10 +1,13 @@
 import Link from "next/link";
 import {
+  Plane,
+  Scissors,
   Dumbbell,
   Gavel,
   HeartPulse,
   Home,
   House,
+  Soup,
   ShoppingBag,
   Stethoscope,
   Wrench,
@@ -14,6 +17,12 @@ import { MotionReveal } from "@/components/marketing/motion-reveal";
 import type { Industry } from "@/types/content";
 
 const iconMap = {
+  restaurants: Soup,
+  "real-estate": House,
+  medical: HeartPulse,
+  retail: ShoppingBag,
+  beauty: Scissors,
+  aviation: Plane,
   "trades-home-services": Wrench,
   "health-wellness-clinics": HeartPulse,
   "dental-clinics": Stethoscope,

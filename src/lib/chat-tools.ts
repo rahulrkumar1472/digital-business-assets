@@ -66,23 +66,23 @@ function scoreServiceMatch(serviceSlug: string, profile: AssetProfile, industryS
 
   const blocker = (profile.blocker || "").toLowerCase();
 
-  if (blocker.includes("lead") && ["websites-in-72-hours", "seo-aeo", "ai-chatbots"].includes(serviceSlug)) {
+  if (blocker.includes("lead") && ["website-starter-build", "website-pro-build", "seo-upgrade-pack"].includes(serviceSlug)) {
     score += 3;
   }
 
-  if (blocker.includes("follow") && ["automations-workflows", "crm-pipelines", "missed-call-recovery"].includes(serviceSlug)) {
+  if (blocker.includes("follow") && ["follow-up-automation", "crm-setup", "call-tracking-missed-call-capture"].includes(serviceSlug)) {
     score += 3;
   }
 
-  if (blocker.includes("booking") && ["booking-systems-reminders", "crm-pipelines"].includes(serviceSlug)) {
+  if (blocker.includes("booking") && ["booking-system-setup", "crm-setup", "whatsapp-business-setup"].includes(serviceSlug)) {
     score += 3;
   }
 
-  if ((profile.monthlyLeads || 0) > 120 && ["crm-pipelines", "reporting-dashboards"].includes(serviceSlug)) {
+  if ((profile.monthlyLeads || 0) > 120 && ["crm-setup", "follow-up-automation", "ads-launch-pack"].includes(serviceSlug)) {
     score += 2;
   }
 
-  if ((profile.monthlyRevenue || 0) > 50000 && ["reporting-dashboards", "automations-workflows"].includes(serviceSlug)) {
+  if ((profile.monthlyRevenue || 0) > 50000 && ["website-pro-build", "crm-setup", "ads-launch-pack"].includes(serviceSlug)) {
     score += 2;
   }
 

@@ -1,25 +1,24 @@
 import Link from "next/link";
-import { AlertTriangle, ArrowUpRight, CheckCircle2, ShieldCheck, Timer } from "lucide-react";
+import { ArrowRight, Rocket, ScanSearch, ShieldCheck } from "lucide-react";
 
-import { AIGrowthSimulator } from "@/components/marketing/ai-growth-simulator";
-import { AutomationFlowDiagram } from "@/components/marketing/automation-flow-diagram";
-import { CaseStudySpotlight } from "@/components/marketing/case-study-spotlight";
-import { DashboardPreviewPanel } from "@/components/marketing/dashboard-preview-panel";
 import { DeepSeoContent } from "@/components/marketing/deep-seo-content";
 import { FAQ } from "@/components/marketing/faq";
 import { FinalCTA } from "@/components/marketing/final-cta";
-import { FunnelDiagram } from "@/components/marketing/funnel-diagram";
 import { HeroTypewriter } from "@/components/marketing/hero-typewriter";
-import { HowItWorksStepper } from "@/components/marketing/how-it-works-stepper";
-import { KPICharts } from "@/components/marketing/kpi-charts";
+import { InContextPricing } from "@/components/marketing/in-context-pricing";
 import { MotionReveal } from "@/components/marketing/motion-reveal";
-import { PrimaryCTA } from "@/components/marketing/primary-cta";
-import { ProofBar } from "@/components/marketing/proof-bar";
+import { OutcomeCard } from "@/components/marketing/outcome-card";
+import { ProofCard } from "@/components/marketing/proof-card";
 import { SectionBlock } from "@/components/marketing/section-block";
-import { VideoSection } from "@/components/marketing/video-section";
+import { StepperQuiz } from "@/components/marketing/stepper-quiz";
+import { SystemDiagram } from "@/components/marketing/system-diagram";
+import { TrackTile } from "@/components/marketing/track-tile";
+import { DashboardPreviewPanel } from "@/components/marketing/dashboard-preview-panel";
 import { JsonLd } from "@/components/shared/json-ld";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { caseStudies } from "@/data";
+import { Separator } from "@/components/ui/separator";
+import { services } from "@/data";
 import { homeFaqs } from "@/data/page-faqs";
 import { buildMetadata } from "@/lib/seo";
 import { faqSchema } from "@/lib/schema";
@@ -28,92 +27,81 @@ import { faqToSchemaItems } from "@/lib/schema-helpers";
 export const metadata = buildMetadata({ path: "/" });
 
 const rotatingLines = [
-  "Websites Built in 72 Hours",
-  "Automations That Never Miss Leads",
-  "SEO + AI Search Visibility",
-  "24/7 Customer Support Systems",
+  "websites",
+  "websites → leads",
+  "websites → leads → follow-up",
+  "websites → leads → follow-up → bookings",
+  "websites → leads → follow-up → bookings → repeat customers",
 ];
 
-const heroBullets = [
-  "Increase qualified leads",
-  "Reduce missed enquiries",
-  "Automate bookings",
-  "Improve conversion rates",
-  "Real-time performance tracking",
-];
+const heroProofBadges = ["Conversion-first", "SEO-ready", "Automation built-in"];
+const heroTrustBadges = ["UK-wide rollout", "Transparent pricing", "Done-for-you setup"];
+const heroProofBar = ["72-hour launch option", "Free scan for existing sites", "Built for measurable growth"];
 
-const launchStepper = [
+const trackSplit = [
   {
-    title: "Audit & Asset Capture",
-    detail: "Offer clarity, funnel gaps, and asset collection so build starts immediately.",
-    timeline: "Day 0",
+    label: "Track 1",
+    title: "Get Online in 72 Hours",
+    whoFor: "You are not online yet, or your current site looks basic and does not win trust.",
+    outcome: "You get a live, premium, conversion-ready website and your first lead system fast.",
+    steps: ["Launch", "Get Leads", "Automate Follow-Up"],
+    href: "/services/website-starter-build",
+    ctaLabel: "Start Track 1",
+    icon: Rocket,
   },
   {
-    title: "Website + Tracking + CRM",
-    detail: "Conversion pages, analytics events, forms, and CRM stage architecture installed.",
-    timeline: "Day 1",
+    label: "Track 2",
+    title: "Start Free Website Scan",
+    whoFor: "You are online already, but your site is underperforming and leads are leaking.",
+    outcome: "You get a scan, branded PDF report, and a practical growth deployment plan.",
+    steps: ["Scan", "Fix Priorities", "Deploy Growth Plan"],
+    href: "/tools/website-audit/start",
+    ctaLabel: "Start Track 2",
+    icon: ScanSearch,
   },
-  {
-    title: "Automation + Chatbot + Booking",
-    detail: "Lead routing, reminders, chatbot qualification, and booking flows deployed.",
-    timeline: "Day 2",
-  },
-  {
-    title: "Launch + AI Optimisation",
-    detail: "Go live with baseline dashboards and first optimisation checklist.",
-    timeline: "Day 3",
-  },
-];
+] as const;
 
-const serviceModules = [
+const proofFormat = [
   {
-    title: "AI Website Build",
-    href: "/services/websites-in-72-hours",
-    outcome: "Launch conversion-ready web assets fast.",
-    bullets: ["72-hour launch sprint", "Offer-first page architecture", "Tracked lead actions"],
+    title: "Local Services",
+    before: "Missed calls sat for hours, and urgent leads bought elsewhere.",
+    after: "Missed calls got instant response and survey bookings increased.",
+    changed: [
+      "Call tracking + missed call capture",
+      "Fast website launch in 72 hours",
+      "Automated callback workflow",
+    ],
+    metric: "Before: missed demand · After: faster recovery",
   },
   {
-    title: "SEO + AEO",
-    href: "/services/seo-aeo",
-    outcome: "Win both search rankings and AI answer visibility.",
-    bullets: ["Technical SEO baseline", "AEO-ready content clusters", "Intent-driven internal linking"],
+    title: "Clinic Funnel",
+    before: "Consultation no-shows made growth unpredictable.",
+    after: "Bookings became more consistent with reminders and clearer conversion pages.",
+    changed: [
+      "Booking system with reminders",
+      "Trust-first service page rebuild",
+      "CRM visibility from enquiry to booking",
+    ],
+    metric: "Before: no-show risk · After: better attendance",
   },
   {
-    title: "CRM + Workflows",
-    href: "/services/crm-pipelines",
-    outcome: "Move every lead through a controlled pipeline.",
-    bullets: ["Pipeline stage design", "Owner/team SLA reminders", "Source-to-close reporting"],
+    title: "Real Estate",
+    before: "Out-of-hours valuation enquiries cooled before callback.",
+    after: "Leads were qualified quickly and routed into booked valuation calls.",
+    changed: [
+      "AI assistant qualification",
+      "Follow-up automation",
+      "Pipeline stage routing",
+    ],
+    metric: "Before: delayed lead handling · After: quicker booking flow",
   },
-  {
-    title: "WhatsApp + Chatbots",
-    href: "/services/ai-chatbots",
-    outcome: "Handle enquiries instantly and qualify them automatically.",
-    bullets: ["Consultative chat flows", "Out-of-hours response", "CRM and booking handoff"],
-  },
-  {
-    title: "24/7 Answering",
-    href: "/services/missed-call-recovery",
-    outcome: "Recover missed calls before they go cold.",
-    bullets: ["Instant text-back", "Urgent lead routing", "Call outcome tracking"],
-  },
-  {
-    title: "Booking Systems",
-    href: "/services/booking-systems-reminders",
-    outcome: "Reduce no-shows and increase confirmed appointments.",
-    bullets: ["Smart booking funnel", "Reminder sequences", "Reschedule automation"],
-  },
-  {
-    title: "Reporting Dashboard",
-    href: "/services/reporting-dashboards",
-    outcome: "Track pipeline health and ROI in one place.",
-    bullets: ["Weekly KPI scorecard", "Response-to-booking tracking", "Revenue attribution"],
-  },
-  {
-    title: "SaaS Development",
-    href: "/services/automations-workflows",
-    outcome: "Custom systems for workflows your tools cannot handle.",
-    bullets: ["Workflow app modules", "API/webhook integrations", "Operational failover logic"],
-  },
+] as const;
+
+const toolSteps = [
+  "You enter your website and biggest concern.",
+  "We run technical, speed, and conversion checks.",
+  "You get a branded PDF with fix-now priorities.",
+  "You deploy only the modules your business needs.",
 ];
 
 const faqs = homeFaqs();
@@ -123,150 +111,215 @@ export default function HomePage() {
     <>
       <JsonLd data={faqSchema(faqToSchemaItems(faqs))} />
 
-      <SectionBlock className="pt-18 md:pt-24">
-        <div className="relative overflow-hidden rounded-[1.9rem] border border-slate-800/80 bg-slate-900/45 p-7 shadow-[0_36px_120px_rgba(2,6,23,0.68)] md:p-12">
-          <div className="grid items-center gap-10 lg:grid-cols-[1.02fr_0.98fr]">
+      <SectionBlock className="pt-20 md:pt-28">
+        <div className="rounded-[2rem] border border-cyan-500/35 bg-[linear-gradient(155deg,rgba(56,189,248,0.17),rgba(15,23,42,0.93))] p-6 shadow-[0_42px_130px_rgba(2,6,23,0.7)] md:p-12">
+          <div className="grid gap-10 xl:grid-cols-[1.03fr_0.97fr]">
             <MotionReveal className="space-y-7">
-              <p className="text-xs font-semibold tracking-[0.2em] text-cyan-300 uppercase">Digital Business Assets</p>
+              <Badge variant="outline" className="border-cyan-500/45 bg-cyan-500/10 text-cyan-200">Business OS for UK businesses</Badge>
               <div className="space-y-5">
-                <h1 className="text-5xl font-semibold leading-[1.02] text-white md:text-7xl">AI-First Business Systems From £99/Month</h1>
-                <HeroTypewriter lines={rotatingLines} />
-                <ul className="space-y-2.5 text-sm text-slate-200 md:text-base">
-                  {heroBullets.map((item) => (
-                    <li key={item} className="flex items-start gap-2">
-                      <CheckCircle2 className="mt-0.5 size-4 text-cyan-300" />
+                <h1 className="text-6xl leading-[0.98] font-semibold text-white md:text-8xl">A complete revenue system for any business.</h1>
+                <div className="flex flex-wrap gap-2 rounded-xl border border-slate-800 bg-slate-950/60 p-2.5">
+                  {heroProofBar.map((item) => (
+                    <span key={item} className="rounded-md border border-slate-700 bg-slate-900/70 px-2.5 py-1 text-[11px] font-medium text-slate-200">
                       {item}
-                    </li>
+                    </span>
                   ))}
+                </div>
+                <HeroTypewriter lines={rotatingLines} />
+                <ul className="max-w-2xl space-y-2 text-sm text-slate-200 md:text-base">
+                  <li className="inline-flex items-start gap-2"><ShieldCheck className="mt-0.5 size-4 text-cyan-300" />You pick your track based on where your business is right now.</li>
+                  <li className="inline-flex items-start gap-2"><ShieldCheck className="mt-0.5 size-4 text-cyan-300" />You get clear priorities, pricing, and what happens next.</li>
+                  <li className="inline-flex items-start gap-2"><ShieldCheck className="mt-0.5 size-4 text-cyan-300" />You move from website to leads to bookings with one connected system.</li>
                 </ul>
               </div>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <PrimaryCTA label="Get Your Growth Plan" eventName="hero_cta_click" eventPayload={{ location: "home_hero" }} />
-                <Button asChild variant="outline" size="lg" className="border-slate-700 bg-slate-900/45 text-slate-100 transition-all hover:-translate-y-0.5 hover:bg-slate-800">
-                  <Link href="/pricing">View Pricing</Link>
-                </Button>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <p className="col-span-full text-xs font-semibold tracking-[0.14em] text-cyan-200 uppercase">Choose your track to start now</p>
+                <Link
+                  href="/services/website-starter-build"
+                  className="group rounded-2xl border border-cyan-400/55 bg-[linear-gradient(150deg,rgba(34,211,238,0.22),rgba(15,23,42,0.92))] p-5 shadow-[0_0_55px_rgba(34,211,238,0.16)] transition-all hover:-translate-y-0.5 hover:scale-[1.01] hover:shadow-[0_0_75px_rgba(34,211,238,0.24)]"
+                >
+                  <p className="text-xs font-semibold tracking-[0.14em] text-cyan-200 uppercase">Track 1</p>
+                  <p className="mt-1 text-2xl font-semibold text-white">Get Online in 72 Hours</p>
+                  <p className="mt-1 text-sm text-slate-200">For businesses with weak or no online presence.</p>
+                  <p className="mt-2 text-xs text-cyan-100">Outcome: You launch fast and start capturing leads.</p>
+                  <p className="mt-3 text-xs font-semibold text-cyan-200">Start Track 1</p>
+                </Link>
+                <Link
+                  href="/tools/website-audit/start"
+                  className="group rounded-2xl border border-slate-600 bg-[linear-gradient(150deg,rgba(30,41,59,0.8),rgba(2,6,23,0.95))] p-5 shadow-[0_0_55px_rgba(15,23,42,0.4)] transition-all hover:-translate-y-0.5 hover:scale-[1.01] hover:border-cyan-400/40 hover:shadow-[0_0_75px_rgba(34,211,238,0.2)]"
+                >
+                  <p className="text-xs font-semibold tracking-[0.14em] text-cyan-200 uppercase">Track 2</p>
+                  <p className="mt-1 text-2xl font-semibold text-white">Start Free Website Scan</p>
+                  <p className="mt-1 text-sm text-slate-200">For businesses already online but underperforming.</p>
+                  <p className="mt-2 text-xs text-cyan-100">Outcome: You identify leaks and deploy only priority fixes.</p>
+                  <p className="mt-3 text-xs font-semibold text-cyan-200">Start Track 2</p>
+                </Link>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {heroTrustBadges.map((item) => (
+                  <Badge key={item} variant="outline" className="border-cyan-500/35 bg-cyan-500/8 text-cyan-100">
+                    {item}
+                  </Badge>
+                ))}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {heroProofBadges.map((item) => (
+                  <Badge key={item} variant="outline" className="border-slate-700 bg-slate-950/70 text-slate-200">
+                    {item}
+                  </Badge>
+                ))}
               </div>
             </MotionReveal>
 
-            <MotionReveal delay={0.08}>
+            <MotionReveal delay={0.06}>
               <DashboardPreviewPanel />
             </MotionReveal>
           </div>
         </div>
       </SectionBlock>
 
-      <SectionBlock className="py-8 md:py-12">
-        <ProofBar />
-      </SectionBlock>
-
-      <SectionBlock>
-        <div className="grid gap-5 md:grid-cols-3">
-          <MotionReveal>
-            <article className="rounded-2xl border border-amber-500/35 bg-amber-500/10 p-5">
-              <AlertTriangle className="size-5 text-amber-200" />
-              <h2 className="mt-3 text-xl font-semibold text-white">Your competitors are installing this now</h2>
-              <p className="mt-2 text-sm text-amber-100">If your response time is slower than category leaders, high-intent leads choose whoever follows up first.</p>
-            </article>
-          </MotionReveal>
-          <MotionReveal delay={0.05}>
-            <article className="rounded-2xl border border-cyan-500/35 bg-cyan-500/10 p-5">
-              <Timer className="size-5 text-cyan-200" />
-              <h2 className="mt-3 text-xl font-semibold text-white">72-hour deployment blocks</h2>
-              <p className="mt-2 text-sm text-cyan-100">Build, tracking, and automation launch in staged cycles so value arrives fast without operational chaos.</p>
-            </article>
-          </MotionReveal>
-          <MotionReveal delay={0.1}>
-            <article className="rounded-2xl border border-emerald-500/35 bg-emerald-500/10 p-5">
-              <ShieldCheck className="size-5 text-emerald-200" />
-              <h2 className="mt-3 text-xl font-semibold text-white">Value stack from £99/mo</h2>
-              <p className="mt-2 text-sm text-emerald-100">Entry plan delivers conversion infrastructure and measurable execution support before scaling into advanced automation.</p>
-            </article>
-          </MotionReveal>
-        </div>
-      </SectionBlock>
-
-      <SectionBlock>
-        <MotionReveal className="max-w-4xl">
-          <p className="text-xs font-semibold tracking-[0.2em] text-cyan-300 uppercase">What we build in 72 hours</p>
-          <h2 className="mt-3 text-4xl font-semibold text-white md:text-5xl">Launch sequence designed for speed and measurable outcomes</h2>
-          <p className="mt-3 text-sm text-slate-300 md:text-base">You get a practical implementation timeline with clear milestones from day zero.</p>
+      <SectionBlock className="pt-8">
+        <MotionReveal className="mb-6 max-w-4xl">
+          <p className="text-xs font-semibold tracking-[0.2em] text-cyan-300 uppercase">Track split</p>
+          <h2 className="mt-3 text-5xl font-semibold text-white md:text-6xl">Pick your track and get moving this week</h2>
         </MotionReveal>
-        <div className="mt-8">
-          <HowItWorksStepper steps={launchStepper} />
-        </div>
-      </SectionBlock>
-
-      <SectionBlock>
-        <AIGrowthSimulator mode="preview" />
-      </SectionBlock>
-
-      <SectionBlock id="services">
-        <MotionReveal className="max-w-4xl">
-          <p className="text-xs font-semibold tracking-[0.2em] text-cyan-300 uppercase">Services Grid</p>
-          <h2 className="mt-3 text-4xl font-semibold text-white md:text-5xl">8 product modules that make up your revenue system</h2>
-          <p className="mt-3 text-sm text-slate-300 md:text-base">Each module is outcome-driven and can be deployed standalone or as a full stack.</p>
-        </MotionReveal>
-
-        <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {serviceModules.map((module, index) => (
-            <MotionReveal key={module.title} delay={index * 0.04}>
-              <article className="group h-full rounded-2xl border border-slate-800 bg-slate-900/45 p-5 transition-all hover:-translate-y-0.5 hover:border-cyan-400/45 hover:shadow-[0_20px_60px_rgba(2,6,23,0.5)]">
-                <h3 className="text-lg font-semibold text-white">{module.title}</h3>
-                <p className="mt-2 text-sm text-cyan-200">{module.outcome}</p>
-                <ul className="mt-3 space-y-1.5 text-xs text-slate-300">
-                  {module.bullets.map((bullet) => (
-                    <li key={bullet} className="list-disc pl-1 marker:text-cyan-300">{bullet}</li>
-                  ))}
-                </ul>
-                <Link href={module.href} className="mt-4 inline-flex items-center gap-2 text-xs font-semibold text-cyan-300 hover:text-cyan-200">
-                  View module
-                  <ArrowUpRight className="size-3.5" />
-                </Link>
-              </article>
-            </MotionReveal>
+        <div className="grid gap-4 lg:grid-cols-2">
+          {trackSplit.map((track, index) => (
+            <TrackTile
+              key={track.title}
+              label={track.label}
+              title={track.title}
+              whoFor={track.whoFor}
+              outcome={track.outcome}
+              steps={track.steps}
+              href={track.href}
+              ctaLabel={track.ctaLabel}
+              icon={track.icon}
+              delay={index * 0.05}
+              featured={index === 0}
+            />
           ))}
         </div>
       </SectionBlock>
 
-      <SectionBlock id="how-it-works">
+      <SectionBlock>
+        <StepperQuiz />
+      </SectionBlock>
+
+      <SectionBlock id="services">
         <MotionReveal className="max-w-4xl">
-          <p className="text-xs font-semibold tracking-[0.2em] text-cyan-300 uppercase">How It Works Flow</p>
-          <h2 className="mt-3 text-4xl font-semibold text-white md:text-5xl">Traffic to revenue mapped in one operating view</h2>
+          <p className="text-xs font-semibold tracking-[0.2em] text-cyan-300 uppercase">Productized services</p>
+          <h2 className="mt-3 text-5xl font-semibold text-white md:text-6xl">You get clear outcomes, timelines, and pricing</h2>
+          <p className="mt-3 max-w-3xl text-sm text-slate-300 md:text-base">Most businesses need the same few modules next. We show you exactly where to start.</p>
         </MotionReveal>
-        <div className="mt-8 grid gap-4 lg:grid-cols-3">
-          <FunnelDiagram />
-          <AutomationFlowDiagram />
-          <KPICharts />
+
+        <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {services.slice(0, 9).map((service, index) => (
+            <OutcomeCard
+              key={service.slug}
+              title={service.title}
+              result={service.outcomes[0] || service.strapline}
+              timeframe={service.timeline}
+              price={service.entryPrice}
+              bullets={service.deliverables.slice(0, 3)}
+              href={`/services/${service.slug}`}
+              delay={index * 0.04}
+              priorityLabel={index < 3 ? "Most businesses need this next" : undefined}
+            />
+          ))}
         </div>
       </SectionBlock>
 
       <SectionBlock>
-        <VideoSection
-          title="Product demo: see the AI revenue system in action"
-          description="A quick walkthrough of how lead capture, automation, booking, and reporting work as one stack."
-          videoUrl="https://www.youtube.com/watch?v=jNQXAC9IVRw"
-          points={["Multi-channel lead capture and routing", "Automation-driven follow-up and reminders", "Owner-level dashboard visibility"]}
+        <InContextPricing
+          compact
+          title="Pricing is shown in context, not hidden"
+          description="You can start with one module from £399-£599, then move to monthly support when you want ongoing optimisation."
         />
       </SectionBlock>
 
       <SectionBlock>
+        <SystemDiagram />
+      </SectionBlock>
+
+      <SectionBlock id="proof">
         <MotionReveal className="max-w-4xl">
-          <p className="text-xs font-semibold tracking-[0.2em] text-cyan-300 uppercase">Case Study Spotlight</p>
-          <h2 className="mt-3 text-4xl font-semibold text-white md:text-5xl">Before and after outcomes from deployed systems</h2>
+          <p className="text-xs font-semibold tracking-[0.2em] text-cyan-300 uppercase">Proof structure</p>
+          <h2 className="mt-3 text-5xl font-semibold text-white md:text-6xl">Before. After. What changed.</h2>
+          <p className="mt-3 max-w-3xl text-sm text-slate-300 md:text-base">No inflated claims. Just clear format so you can compare where you are now versus where you want to be.</p>
         </MotionReveal>
-        <div className="mt-8">
-          <CaseStudySpotlight caseStudies={caseStudies} />
+
+        <div className="mt-8 grid gap-4 lg:grid-cols-3">
+          {proofFormat.map((item, index) => (
+            <ProofCard
+              key={item.title}
+              title={item.title}
+              before={item.before}
+              after={item.after}
+              changed={item.changed}
+              metric={item.metric}
+              delay={index * 0.05}
+            />
+          ))}
+        </div>
+
+        <div className="mt-6">
+          <Button asChild variant="outline" className="border-slate-700 bg-slate-900/50 text-slate-100 hover:bg-slate-800">
+            <Link href="/case-studies">
+              View full case studies
+              <ArrowRight className="size-4" />
+            </Link>
+          </Button>
+        </div>
+      </SectionBlock>
+
+      <SectionBlock id="tools">
+        <div className="grid gap-8 rounded-3xl border border-slate-800 bg-slate-900/45 p-6 md:p-8 xl:grid-cols-[1fr_1fr]">
+          <MotionReveal>
+            <p className="text-xs font-semibold tracking-[0.2em] text-cyan-300 uppercase">Free website scan</p>
+            <h2 className="mt-3 text-5xl font-semibold text-white md:text-6xl">See what your report includes before you run it</h2>
+            <p className="mt-3 max-w-3xl text-sm text-slate-300 md:text-base">If your site is live but underperforming, this shows you what to fix first and what to deploy next.</p>
+            <ul className="mt-5 space-y-2 text-sm text-slate-200">
+              {toolSteps.map((step) => (
+                <li key={step} className="list-disc pl-1 marker:text-cyan-300">
+                  {step}
+                </li>
+              ))}
+            </ul>
+            <Button asChild className="mt-6 bg-cyan-300 text-slate-950 hover:bg-cyan-200">
+              <Link href="/tools/website-audit/start">Run free scan</Link>
+            </Button>
+          </MotionReveal>
+
+          <MotionReveal delay={0.06}>
+            <div className="grid gap-3">
+              {["Technical SEO checks", "Mobile speed findings", "H1/meta/canonical checks", "Priority upgrade cards", "Branded PDF download"].map((item) => (
+                <div key={item} className="rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-3 text-sm text-slate-200">
+                  <span className="inline-flex items-center gap-2"><ShieldCheck className="size-4 text-cyan-300" />{item}</span>
+                </div>
+              ))}
+              <Separator className="bg-slate-800" />
+              <p className="text-xs text-slate-400">You get a clear path from diagnosis to implementation. No guessing, no report fluff.</p>
+            </div>
+          </MotionReveal>
         </div>
       </SectionBlock>
 
       <SectionBlock>
-        <DeepSeoContent topic="AI Revenue System Framework" audience="UK SME owners and operators" image="/media/hero-dashboard.jpg" />
+        <DeepSeoContent
+          topic="Business OS two-track rollout"
+          audience="Business owners deciding between launching fast or scanning and fixing underperforming systems"
+          image="/media/hero-dashboard.jpg"
+        />
       </SectionBlock>
 
       <SectionBlock>
-        <MotionReveal className="max-w-4xl">
+        <MotionReveal className="max-w-3xl">
           <p className="text-xs font-semibold tracking-[0.2em] text-cyan-300 uppercase">FAQ</p>
-          <h2 className="mt-3 text-4xl font-semibold text-white md:text-5xl">Questions before you deploy</h2>
+          <h2 className="mt-3 text-4xl font-semibold text-white md:text-5xl">What happens next after you pick a track?</h2>
         </MotionReveal>
         <div className="mt-8">
           <FAQ items={faqs} />
@@ -274,7 +327,32 @@ export default function HomePage() {
       </SectionBlock>
 
       <SectionBlock className="pt-2 pb-20">
-        <FinalCTA title="Stop Losing Leads. Start Building a Revenue System." />
+        <MotionReveal>
+          <div className="rounded-3xl border border-cyan-500/35 bg-[linear-gradient(150deg,rgba(34,211,238,0.15),rgba(15,23,42,0.94))] p-8 md:p-10">
+            <p className="text-xs font-semibold tracking-[0.16em] text-cyan-300 uppercase">Final step</p>
+            <h2 className="mt-3 text-5xl font-semibold text-white md:text-6xl">Choose your track and start this week</h2>
+            <ul className="mt-3 max-w-3xl space-y-2 text-sm text-slate-200 md:text-base">
+              <li className="list-disc pl-1 marker:text-cyan-300">If you need to get online fast, start Track 1.</li>
+              <li className="list-disc pl-1 marker:text-cyan-300">If your site is already live but leaking opportunities, start Track 2.</li>
+              <li className="list-disc pl-1 marker:text-cyan-300">You get a clear next step immediately after you choose.</li>
+            </ul>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <Button asChild size="lg" className="bg-cyan-300 text-slate-950 hover:bg-cyan-200">
+                <Link href="/services/website-starter-build">Track 1: Get Online in 72 Hours</Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="border-slate-700 bg-slate-900/55 text-slate-100 hover:bg-slate-800">
+                <Link href="/tools/website-audit/start">Track 2: Start Free Website Scan</Link>
+              </Button>
+            </div>
+          </div>
+        </MotionReveal>
+      </SectionBlock>
+
+      <SectionBlock className="pt-0 pb-20">
+        <FinalCTA
+          title="You do not need more marketing noise. You need a system that runs."
+          description="We help you choose the right track, install the right modules, and keep your growth process clear and measurable."
+        />
       </SectionBlock>
     </>
   );

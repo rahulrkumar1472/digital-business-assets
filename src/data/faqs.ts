@@ -22,7 +22,7 @@ export const generalFaqs: FaqItem[] = [
       "Usually yes. We are API-first and webhook-first. We only recommend replacing tools when current setup blocks growth or reliability.",
   },
   {
-    question: "What does from £99/month include?",
+    question: "What does from £79/month include?",
     answer:
       "Entry plans include essential website and conversion support. More advanced automation and AI services are scoped based on complexity.",
   },

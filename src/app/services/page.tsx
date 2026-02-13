@@ -1,20 +1,18 @@
 import Link from "next/link";
-import { CheckCircle2 } from "lucide-react";
+import { ArrowRight, Rocket, ScanSearch } from "lucide-react";
 
-import { AutomationFlowDiagram } from "@/components/marketing/automation-flow-diagram";
 import { DeepSeoContent } from "@/components/marketing/deep-seo-content";
 import { FAQ } from "@/components/marketing/faq";
 import { FinalCTA } from "@/components/marketing/final-cta";
-import { FunnelDiagram } from "@/components/marketing/funnel-diagram";
-import { HowItWorksStepper } from "@/components/marketing/how-it-works-stepper";
-import { KPICharts } from "@/components/marketing/kpi-charts";
+import { InContextPricing } from "@/components/marketing/in-context-pricing";
 import { MotionReveal } from "@/components/marketing/motion-reveal";
-import { PrimaryCTA } from "@/components/marketing/primary-cta";
+import { OutcomeCard } from "@/components/marketing/outcome-card";
 import { SectionBlock } from "@/components/marketing/section-block";
-import { ServicePillars } from "@/components/marketing/service-pillars";
-import { VideoSection } from "@/components/marketing/video-section";
+import { SystemDiagram } from "@/components/marketing/system-diagram";
+import { TrackTile } from "@/components/marketing/track-tile";
 import { JsonLd } from "@/components/shared/json-ld";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { services } from "@/data";
 import { servicesFaqs } from "@/data/page-faqs";
 import { buildMetadata } from "@/lib/seo";
@@ -23,25 +21,11 @@ import { faqToSchemaItems } from "@/lib/schema-helpers";
 
 export const metadata = buildMetadata({ path: "/services" });
 
-const outcomes = [
-  "Higher enquiry-to-booking conversion through conversion-first assets.",
-  "Faster first response with automations and AI handoff.",
-  "More predictable pipeline progression in CRM.",
-  "Weekly visibility on revenue, response, and booking metrics.",
-];
-
-const includesChecklist = [
-  "Strategy and offer positioning sprint",
-  "Build and integration implementation",
-  "Automation logic and QA",
-  "Tracking and dashboard setup",
-  "30-day optimisation playbook",
-];
-
-const proofStats = [
-  { label: "Average response speed improvement", value: "35-70%" },
-  { label: "Typical booking uplift", value: "+18-45%" },
-  { label: "Missed call recovery", value: "40-88%" },
+const rolloutSteps = [
+  "You tell us where you are leaking revenue.",
+  "You get a recommended module sequence.",
+  "We install, test, and launch quickly.",
+  "You track what improved and what to deploy next.",
 ];
 
 const faqs = servicesFaqs();
@@ -54,100 +38,138 @@ export default function ServicesPage() {
       <SectionBlock className="pt-18 md:pt-24">
         <MotionReveal className="max-w-4xl">
           <p className="text-xs font-semibold tracking-[0.2em] text-cyan-300 uppercase">Services</p>
-          <h1 className="mt-3 text-4xl font-semibold text-white md:text-6xl">Revenue system modules you can deploy fast</h1>
-          <p className="mt-4 text-sm leading-relaxed text-slate-300 md:text-lg">
-            Choose one pillar or combine multiple. Every service is engineered around conversion, response speed, and measurable growth outcomes.
-          </p>
+          <h1 className="mt-3 text-5xl font-semibold text-white md:text-7xl">Pick the module your business needs next</h1>
+          <ul className="mt-4 max-w-3xl space-y-2 text-sm text-slate-300 md:text-base">
+            <li className="list-disc pl-1 marker:text-cyan-300">You can install one module from £399-£599 and move fast.</li>
+            <li className="list-disc pl-1 marker:text-cyan-300">You see outcomes and timeline before work starts.</li>
+            <li className="list-disc pl-1 marker:text-cyan-300">You scale only when your numbers justify the next module.</li>
+          </ul>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <PrimaryCTA />
-            <Button asChild variant="outline" size="lg" className="border-slate-700 bg-slate-900/45 text-slate-100 hover:bg-slate-800">
-              <Link href="/book">Book a Call</Link>
+            <Button asChild size="lg">
+              <Link href="/services/website-starter-build">Start with 72-hour launch</Link>
+            </Button>
+            <Button asChild variant="outline" className="border-slate-700 bg-slate-900/45 text-slate-100 hover:bg-slate-800">
+              <Link href="/tools/website-audit/start">Start free website scan</Link>
             </Button>
           </div>
         </MotionReveal>
       </SectionBlock>
 
-      <SectionBlock className="pt-4">
-        <MotionReveal className="max-w-4xl">
-          <h2 className="text-3xl font-semibold text-white md:text-4xl">Outcomes first, always</h2>
-          <p className="mt-3 text-sm text-slate-300">Each service is scoped to move a measurable metric, not just ship deliverables.</p>
-        </MotionReveal>
-        <ul className="mt-6 grid gap-3 md:grid-cols-2">
-          {outcomes.map((item, index) => (
-            <MotionReveal key={item} delay={index * 0.05}>
-              <li className="rounded-2xl border border-slate-800 bg-slate-900/45 p-4 text-sm text-slate-200">
-                <CheckCircle2 className="mb-2 size-4 text-cyan-300" />
-                {item}
-              </li>
-            </MotionReveal>
-          ))}
-        </ul>
-      </SectionBlock>
-
-      <SectionBlock>
-        <MotionReveal className="max-w-4xl">
-          <h2 className="text-3xl font-semibold text-white md:text-4xl">What&apos;s included in every implementation</h2>
-        </MotionReveal>
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          {includesChecklist.map((item, index) => (
-            <MotionReveal key={item} delay={index * 0.04}>
-              <div className="rounded-xl border border-slate-800 bg-slate-900/45 p-4 text-sm text-slate-200">{item}</div>
-            </MotionReveal>
-          ))}
+      <SectionBlock className="pt-8">
+        <div className="grid gap-4 lg:grid-cols-2">
+          <TrackTile
+            label="Track 1"
+            title="Get Online in 72 Hours"
+            whoFor="You need a strong online presence quickly so buyers can find and trust your business."
+            outcome="You launch fast with conversion routes and lead capture built in."
+            steps={["Launch", "Get leads", "Automate follow-up"]}
+            href="/services/website-starter-build"
+            ctaLabel="Start Track 1"
+            icon={Rocket}
+            featured
+          />
+          <TrackTile
+            label="Track 2"
+            title="Analyse and Upgrade"
+            whoFor="You are already online, but your site and follow-up process are underperforming."
+            outcome="You get priority fixes and install the right modules without guesswork."
+            steps={["Scan", "Fix", "Deploy"]}
+            href="/tools/website-audit/start"
+            ctaLabel="Start Track 2"
+            icon={ScanSearch}
+            delay={0.05}
+          />
         </div>
       </SectionBlock>
 
       <SectionBlock>
         <MotionReveal className="max-w-4xl">
-          <h2 className="text-3xl font-semibold text-white md:text-4xl">How it works</h2>
+          <p className="text-xs font-semibold tracking-[0.2em] text-cyan-300 uppercase">Productized installs</p>
+          <h2 className="mt-3 text-5xl font-semibold text-white md:text-6xl">Every service is priced, scoped, and outcome-led</h2>
+          <p className="mt-3 max-w-3xl text-sm text-slate-300 md:text-base">You always know what you get, how fast it ships, and what should be deployed next.</p>
         </MotionReveal>
-        <div className="mt-6">
-          <HowItWorksStepper />
-        </div>
-      </SectionBlock>
 
-      <SectionBlock>
-        <div className="grid gap-4 md:grid-cols-3">
-          {proofStats.map((stat, index) => (
-            <MotionReveal key={stat.label} delay={index * 0.05}>
-              <div className="rounded-2xl border border-slate-800 bg-slate-900/45 p-5">
-                <p className="text-xs text-slate-400">{stat.label}</p>
-                <p className="mt-2 text-2xl font-semibold text-cyan-200">{stat.value}</p>
-              </div>
-            </MotionReveal>
+        <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {services.map((service, index) => (
+            <OutcomeCard
+              key={service.slug}
+              title={service.title}
+              result={service.outcomes[0] || service.strapline}
+              timeframe={service.timeline}
+              price={service.entryPrice}
+              bullets={service.deliverables.slice(0, 3)}
+              href={`/services/${service.slug}`}
+              delay={index * 0.035}
+              priorityLabel={index < 3 ? "Most businesses need this next" : undefined}
+            />
           ))}
         </div>
       </SectionBlock>
 
       <SectionBlock>
-        <ServicePillars services={services} />
-      </SectionBlock>
-
-      <SectionBlock>
-        <div className="grid gap-4 lg:grid-cols-3">
-          <FunnelDiagram />
-          <AutomationFlowDiagram />
-          <KPICharts />
+        <div className="rounded-3xl border border-slate-800 bg-slate-900/45 p-6 md:p-8">
+          <MotionReveal className="max-w-4xl">
+            <p className="text-xs font-semibold tracking-[0.2em] text-cyan-300 uppercase">What happens next</p>
+            <h2 className="mt-3 text-4xl font-semibold text-white md:text-5xl">Your rollout is simple and staged</h2>
+          </MotionReveal>
+          <div className="mt-6 grid gap-3 md:grid-cols-4">
+            {rolloutSteps.map((step, index) => (
+              <MotionReveal key={step} delay={index * 0.05}>
+                <article className="h-full rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+                  <p className="text-xs text-cyan-300">Step {index + 1}</p>
+                  <p className="mt-2 text-sm text-slate-300">{step}</p>
+                </article>
+              </MotionReveal>
+            ))}
+          </div>
         </div>
       </SectionBlock>
 
       <SectionBlock>
-        <VideoSection
-          title="30s overview: how the service stack works"
-          description="A quick walkthrough of the system architecture from lead capture to follow-up and reporting."
-          videoUrl="https://www.youtube.com/watch?v=jNQXAC9IVRw"
-          points={["Website + conversion framework", "CRM + automation workflows", "Reporting tied to booked revenue"]}
+        <SystemDiagram />
+      </SectionBlock>
+
+      <SectionBlock>
+        <InContextPricing
+          title="Use one-time installs + monthly operating support"
+          description="Install what you need first. Add subscription support when you want ongoing optimisation and deployment continuity."
         />
       </SectionBlock>
 
       <SectionBlock>
-        <DeepSeoContent topic="AI Revenue Service Delivery" audience="UK business owners planning implementation" image="/media/services-automation.jpg" />
+        <MotionReveal className="rounded-3xl border border-slate-800 bg-slate-900/45 p-6 md:p-8">
+          <h2 className="text-4xl font-semibold text-white md:text-5xl">Not sure where to start?</h2>
+          <ul className="mt-3 max-w-3xl space-y-2 text-sm text-slate-300 md:text-base">
+            <li className="list-disc pl-1 marker:text-cyan-300">If you want speed, start Track 1.</li>
+            <li className="list-disc pl-1 marker:text-cyan-300">If you want diagnosis first, start Track 2.</li>
+            <li className="list-disc pl-1 marker:text-cyan-300">You can switch tracks later without losing momentum.</li>
+          </ul>
+          <Separator className="my-5 bg-slate-800" />
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Button asChild className="bg-cyan-300 text-slate-950 hover:bg-cyan-200">
+              <Link href="/services/website-starter-build">
+                Track 1: 72-hour launch
+                <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="border-slate-700 bg-slate-900/55 text-slate-100 hover:bg-slate-800">
+              <Link href="/tools/website-audit/start">
+                Track 2: free scan
+                <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          </div>
+        </MotionReveal>
+      </SectionBlock>
+
+      <SectionBlock>
+        <DeepSeoContent topic="Business OS service selection" audience="Business owners deciding what module to deploy first" image="/media/services-automation.jpg" />
       </SectionBlock>
 
       <SectionBlock>
         <MotionReveal className="max-w-3xl">
           <p className="text-xs font-semibold tracking-[0.2em] text-cyan-300 uppercase">FAQs</p>
-          <h2 className="mt-3 text-3xl font-semibold text-white md:text-4xl">Before we build</h2>
+          <h2 className="mt-3 text-4xl font-semibold text-white md:text-5xl">Questions before you install anything</h2>
         </MotionReveal>
         <div className="mt-8">
           <FAQ items={faqs} />
@@ -155,7 +177,7 @@ export default function ServicesPage() {
       </SectionBlock>
 
       <SectionBlock className="pt-2 pb-20">
-        <FinalCTA title="Need help choosing the first service to deploy?" description="We will map your highest-leverage move based on current lead flow, team capacity, and sales goals." />
+        <FinalCTA title="You can start small and still move fast" description="Pick one module, deploy it properly, and scale only when your numbers support the next step." />
       </SectionBlock>
     </>
   );

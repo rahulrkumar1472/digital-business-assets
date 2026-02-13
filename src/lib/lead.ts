@@ -20,6 +20,11 @@ export type LeadSubmissionResult = {
   message: string;
 };
 
+type LeadValidationOptions = {
+  requireMessage?: boolean;
+  requireEmail?: boolean;
+};
+
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const phonePattern = /^[+()\d\s-]{7,22}$/;
 
@@ -66,15 +71,26 @@ export function normalizeLeadPayload(payload: unknown): LeadPayload {
   };
 }
 
-export function validateLeadPayload(payload: LeadPayload, requireMessage = false) {
+export function validateLeadPayload(payload: LeadPayload, options: boolean | LeadValidationOptions = false) {
+  const resolved: Required<LeadValidationOptions> =
+    typeof options === "boolean"
+      ? { requireMessage: options, requireEmail: true }
+      : {
+          requireMessage: options.requireMessage ?? false,
+          requireEmail: options.requireEmail ?? true,
+        };
   const errors: string[] = [];
 
   if (!payload.name) {
     errors.push("Name is required.");
   }
 
-  if (!payload.email || !emailPattern.test(payload.email)) {
-    errors.push("A valid email is required.");
+  if (resolved.requireEmail) {
+    if (!payload.email || !emailPattern.test(payload.email)) {
+      errors.push("A valid email is required.");
+    }
+  } else if (payload.email && !emailPattern.test(payload.email)) {
+    errors.push("Please provide a valid email address or leave it blank.");
   }
 
   if (!payload.phone || !phonePattern.test(payload.phone)) {
@@ -89,7 +105,7 @@ export function validateLeadPayload(payload: LeadPayload, requireMessage = false
     errors.push("Website must start with http:// or https://.");
   }
 
-  if (requireMessage && (!payload.message || payload.message.length < 20)) {
+  if (resolved.requireMessage && (!payload.message || payload.message.length < 20)) {
     errors.push("Message must contain at least 20 characters.");
   }
 

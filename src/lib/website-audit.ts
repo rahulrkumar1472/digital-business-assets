@@ -94,8 +94,12 @@ function normalizeInput(raw: Partial<WebsiteAuditInput>) {
       ? raw.concern
       : "All of it";
 
-  if (!name || !email || !phone || !industry) {
-    throw new Error("Name, email, phone, and industry are required.");
+  if (!name || !phone || !industry) {
+    throw new Error("Name, phone, and industry are required.");
+  }
+
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new Error("If provided, email must be valid.");
   }
 
   return {
@@ -750,7 +754,10 @@ export async function runWebsiteAudit(rawInput: Partial<WebsiteAuditInput>) {
     },
   });
 
-  const validation = validateLeadPayload(lead, false);
+  const validation = validateLeadPayload(lead, {
+    requireMessage: false,
+    requireEmail: Boolean(input.email),
+  });
   if (validation.valid) {
     await submitLead(lead);
   }

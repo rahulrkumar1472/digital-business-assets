@@ -30,7 +30,7 @@ const checklist = [
 const proof = [
   { label: "Typical first response from our team", value: "< 1 business day" },
   { label: "Delivery coverage", value: "UK-wide" },
-  { label: "Entry plan", value: "From £99/mo" },
+  { label: "Entry plan", value: "From £79/mo" },
 ];
 
 const faqs = contactFaqs();

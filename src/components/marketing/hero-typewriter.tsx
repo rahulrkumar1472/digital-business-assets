@@ -55,7 +55,7 @@ export function HeroTypewriter({ lines }: HeroTypewriterProps) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="min-h-[3rem] text-lg font-medium text-slate-100 sm:text-2xl"
+      className="min-h-[3.4rem] text-2xl font-medium text-slate-100 sm:text-3xl"
     >
       <span className="bg-[linear-gradient(90deg,#e2e8f0,#67e8f9,#38bdf8)] bg-clip-text text-transparent">
         {visible}

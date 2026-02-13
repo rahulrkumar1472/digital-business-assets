@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { chatToolDefinitions, listIndustryNames, runChatTool } from "@/lib/chat-tools";
 import { buildKnowledgeDigest } from "@/lib/knowledge";
+import { callOpenAIResponsesApi } from "@/lib/openai/responses";
 
 type ChatRole = "user" | "assistant";
 
@@ -84,31 +85,6 @@ function normaliseMessages(input: unknown): ChatMessage[] {
 
 function buildConversationTranscript(messages: ChatMessage[]) {
   return messages.map((message) => `${message.role.toUpperCase()}: ${message.content}`).join("\n");
-}
-
-async function callResponsesApi(payload: Record<string, unknown>) {
-  const apiKey = process.env.OPENAI_API_KEY;
-
-  if (!apiKey) {
-    return null;
-  }
-
-  const response = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(15000),
-  });
-
-  if (!response.ok) {
-    const details = await response.text();
-    throw new Error(`OpenAI API request failed (${response.status}): ${details.slice(0, 600)}`);
-  }
-
-  return (await response.json()) as Record<string, unknown>;
 }
 
 async function saveLeadViaApi(request: Request, args: Record<string, unknown>) {
@@ -212,12 +188,15 @@ function inferFallbackProfile(messages: ChatMessage[]): FallbackProfile {
   const industries = listIndustryNames();
   const industrySynonyms: Array<{ name: string; aliases: string[] }> = [
     { name: "Trades", aliases: ["plumber", "roofer", "electrician", "builder", "hvac", "gas engineer", "trades"] },
-    { name: "Clinics", aliases: ["clinic", "physio", "wellness", "osteopath"] },
-    { name: "Gyms", aliases: ["gym", "fitness", "personal trainer", "pt"] },
+    { name: "Medical", aliases: ["clinic", "physio", "wellness", "osteopath", "medical"] },
+    { name: "Gyms & Fitness", aliases: ["gym", "fitness", "personal trainer", "pt"] },
     { name: "Dentists", aliases: ["dentist", "dental", "orthodontic"] },
     { name: "Law Firms", aliases: ["law", "solicitor", "legal"] },
     { name: "Real Estate", aliases: ["estate agency", "estate agent", "lettings", "property"] },
-    { name: "Ecom", aliases: ["ecommerce", "e-commerce", "shopify", "online store"] },
+    { name: "Ecommerce", aliases: ["ecommerce", "e-commerce", "shopify", "online store"] },
+    { name: "Restaurants", aliases: ["restaurant", "hospitality", "takeaway"] },
+    { name: "Beauty", aliases: ["beauty", "salon", "aesthetic", "aesthetics"] },
+    { name: "Aviation", aliases: ["aviation", "charter", "aircraft"] },
     { name: "Local Services", aliases: ["local service", "home services", "service business"] },
   ];
 
@@ -370,7 +349,7 @@ export async function POST(request: Request) {
       return NextResponse.json(await fallbackConsultantFlow(request, messages));
     }
 
-    const firstResponse = await callResponsesApi({
+    const firstResponse = await callOpenAIResponsesApi({
       model: MODEL,
       instructions: `${SYSTEM_PROMPT}\n\nKnown industries: ${industries}\n\nKnowledge:\n${knowledgeDigest}`,
       input: transcript,
@@ -410,7 +389,7 @@ export async function POST(request: Request) {
     let message = extractAssistantMessage(firstResponse);
 
     if (toolCalls.length > 0) {
-      const secondResponse = await callResponsesApi({
+      const secondResponse = await callOpenAIResponsesApi({
         model: MODEL,
         previous_response_id: firstResponse.id,
         instructions: `${SYSTEM_PROMPT}\n\nKnown industries: ${industries}`,

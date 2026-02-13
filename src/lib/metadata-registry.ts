@@ -40,72 +40,108 @@ function toDescription(base: string, path: string) {
 const staticRoutes: RouteMetadataEntry[] = [
   {
     path: "/",
-    title: toTitle("AI Revenue Systems From £99/Month"),
+    title: toTitle("Business OS for UK SMEs"),
     description: toDescription(
-      "AI-first business systems for UK SMEs: websites, SEO/AEO, chatbots, automation, CRM, booking, and reporting with measurable growth from £99/month.",
+      "Business OS for UK SMEs: choose Get Online in 72 hours or run a Free Website Scan, then deploy conversion modules with transparent pricing and measurable growth.",
       "/",
     ),
     image: "/media/hero-dashboard.jpg",
   },
   {
     path: "/services",
-    title: toTitle("AI Revenue Services for UK SMEs"),
+    title: toTitle("Business OS Service Modules"),
     description: toDescription(
-      "Explore done-for-you service modules covering website launches, SEO/AEO visibility, chatbot sales flows, CRM automation, booking systems, and KPI dashboards.",
+      "Explore Business OS installs from £399 to £599 including websites, CRM, follow-up automation, booking systems, missed-call capture, SEO upgrades, and chatbot setup.",
       "/services",
     ),
     image: "/media/services-web.jpg",
   },
   {
+    path: "/tools",
+    title: toTitle("Business Growth Tools"),
+    description: toDescription(
+      "Use free growth tools for UK businesses: website scan workflow, branded reports, and simulator-led planning to prioritise fixes before committing to paid module installs.",
+      "/tools",
+    ),
+    image: "/media/dashboard-1.jpg",
+  },
+  {
+    path: "/tools/website-audit",
+    title: toTitle("Free Website Scan Tool"),
+    description: toDescription(
+      "Run a free website scan for technical, speed, and conversion issues, then download a branded PDF report with fix-now priorities and transparent Business OS upgrade options.",
+      "/tools/website-audit",
+    ),
+    image: "/media/dashboard-1.jpg",
+  },
+  {
+    path: "/tools/website-audit/start",
+    title: toTitle("Start Free Website Scan"),
+    description: toDescription(
+      "Start your free website scan with required lead capture fields and optional email, then track live progress, review diagnostics, and download your branded report dashboard.",
+      "/tools/website-audit/start",
+    ),
+    image: "/media/dashboard-call-recovery.svg",
+  },
+  {
+    path: "/growth-simulator",
+    title: toTitle("AI Growth Simulator Tool"),
+    description: toDescription(
+      "Model industry-adjusted growth scenarios with lead, conversion, and response inputs, then export recommendations and route into booking with prefilled business context.",
+      "/growth-simulator",
+    ),
+    image: "/media/simulator-preview.svg",
+  },
+  {
     path: "/industries",
     title: toTitle("Industry Growth Systems"),
     description: toDescription(
-      "Industry-specific growth systems for trades, clinics, gyms, dentists, law firms, real estate, ecommerce, and local services with measurable conversion outcomes.",
+      "Industry-specific Business OS modules for restaurants, real estate, medical, retail, beauty, aviation, and other UK sectors that need faster lead response and conversion.",
       "/industries",
     ),
     image: "/media/industries.jpg",
   },
   {
-    path: "/pricing",
-    title: toTitle("Pricing Plans From £99/Month"),
-    description: toDescription(
-      "Compare starter, growth, and scale plans for AI revenue systems, including websites, automation, chatbot workflows, CRM implementation, and reporting support.",
-      "/pricing",
-    ),
-    image: "/media/services-automation.jpg",
-  },
-  {
     path: "/case-studies",
-    title: toTitle("Case Studies and Revenue Outcomes"),
+    title: toTitle("Case Studies and Outcomes"),
     description: toDescription(
-      "See before-and-after case studies showing how UK SMEs improved response speed, booking conversion, and recurring revenue through deployed AI growth systems.",
+      "Read UK case studies showing how Business OS installs improved response speed, booking rates, and recovered revenue with practical deployment timelines and clear proof metrics.",
       "/case-studies",
     ),
     image: "/media/case-1.jpg",
   },
   {
-    path: "/about",
-    title: toTitle("About Digital Business Assets"),
+    path: "/pricing",
+    title: toTitle("Business OS Pricing"),
     description: toDescription(
-      "Learn how Digital Business Assets designs and deploys AI-first revenue systems for UK SMEs, combining website conversion, automation, CRM, and reporting.",
+      "Compare Business OS tiers: Starter £79, Growth £355, and Scale £499 monthly, with transparent module installs and clear limits for UK business growth operations.",
+      "/pricing",
+    ),
+    image: "/media/services-automation.jpg",
+  },
+  {
+    path: "/about",
+    title: toTitle("About Business OS Team"),
+    description: toDescription(
+      "Learn how Digital Business Assets builds Business OS systems for UK SMEs by combining fast website launches, free diagnostics, automation modules, and measurable growth routines.",
       "/about",
     ),
     image: "/media/hero-ai.jpg",
   },
   {
     path: "/contact",
-    title: toTitle("Contact Our Growth Team"),
+    title: toTitle("Contact Digital Business Assets"),
     description: toDescription(
-      "Contact Digital Business Assets to map your growth bottlenecks, receive a practical implementation plan, and launch conversion systems with measurable ROI.",
+      "Contact the Business OS team for implementation support, module recommendations, and growth planning help tailored to your industry, lead flow, and operating constraints.",
       "/contact",
     ),
     image: "/media/hero-ai.jpg",
   },
   {
     path: "/book",
-    title: toTitle("Book a Strategy Call"),
+    title: toTitle("Book Business OS Strategy Call"),
     description: toDescription(
-      "Book a 30-minute strategy call with Digital Business Assets to review your funnel leaks, automation gaps, and next sprint for measurable revenue growth.",
+      "Book a strategy call to map your bottlenecks, confirm timeline, and choose Business OS modules with transparent pricing, realistic outcomes, and deployment sequencing.",
       "/book",
     ),
     image: "/media/hero-dashboard.jpg",
@@ -114,28 +150,73 @@ const staticRoutes: RouteMetadataEntry[] = [
     path: "/book/confirmation",
     title: toTitle("Booking Confirmation"),
     description: toDescription(
-      "Your strategy session is confirmed. Review your slot details and get ready to map your 30-day AI revenue system implementation roadmap.",
+      "Your strategy call is confirmed. Review your selected slot and submitted context so implementation planning can start quickly with clear priorities and measurable goals.",
       "/book/confirmation",
     ),
     image: "/media/hero-dashboard.jpg",
   },
   {
-    path: "/growth-simulator",
-    title: toTitle("AI Growth Simulator Tool"),
-    description: toDescription(
-      "Run your numbers through our AI Growth Simulator to diagnose funnel leaks, estimate revenue lift ranges, and identify the highest-impact service pack.",
-      "/growth-simulator",
-    ),
-    image: "/media/hero-dashboard.jpg",
-  },
-  {
     path: "/website-audit",
-    title: toTitle("Website Audit Report Tool"),
+    title: toTitle("Website Audit Redirect"),
     description: toDescription(
-      "Generate a bespoke website audit with speed checks, SEO findings, screenshots, and practical next actions tailored to your UK business and growth goals.",
+      "Legacy website audit path now routes to the Business OS tools flow where users can start free scans, generate reports, and choose paid upgrades in one system.",
       "/website-audit",
     ),
     image: "/media/dashboard-1.jpg",
+  },
+  {
+    path: "/app",
+    title: toTitle("Business OS Dashboard"),
+    description: toDescription(
+      "Business OS dashboard overview for reports, leads, AI employees, and simulator operations in one interface designed for ongoing growth execution and accountability.",
+      "/app",
+    ),
+    image: "/media/dashboard-2.jpg",
+  },
+  {
+    path: "/app/reports",
+    title: toTitle("Business OS Reports"),
+    description: toDescription(
+      "Open scan report library, review statuses, and jump to website audit results dashboards to prioritise fixes and convert findings into paid deployment actions.",
+      "/app/reports",
+    ),
+    image: "/media/dashboard-1.jpg",
+  },
+  {
+    path: "/app/leads",
+    title: toTitle("Business OS Leads"),
+    description: toDescription(
+      "View captured leads from free scan funnels with contact details, reasons, and website context so your team can move opportunities into the next conversion stage.",
+      "/app/leads",
+    ),
+    image: "/media/dashboard-2.jpg",
+  },
+  {
+    path: "/app/employees",
+    title: toTitle("Business OS AI Employees"),
+    description: toDescription(
+      "Review deployable AI employee modules for reception, follow-up, call recovery, and search support to expand Business OS capability without adding headcount.",
+      "/app/employees",
+    ),
+    image: "/media/dashboard-3.jpg",
+  },
+  {
+    path: "/app/simulator",
+    title: toTitle("Business OS Simulator"),
+    description: toDescription(
+      "Use the simulator inside Business OS to model growth scenarios, export recommendations, and route planning outputs into booking with prefilled context details.",
+      "/app/simulator",
+    ),
+    image: "/media/simulator-preview.svg",
+  },
+  {
+    path: "/app/settings",
+    title: toTitle("Business OS Settings"),
+    description: toDescription(
+      "Configure Business OS operational settings for webhooks, report templates, lead routing defaults, and environment controls that support reliable long-term growth execution.",
+      "/app/settings",
+    ),
+    image: "/media/dashboard-3.jpg",
   },
   {
     path: "/admin/bookings",
@@ -150,7 +231,7 @@ const staticRoutes: RouteMetadataEntry[] = [
     path: "/blog",
     title: toTitle("AI Revenue Blog for UK SMEs"),
     description: toDescription(
-      "Read practical playbooks on websites, SEO/AEO, automation, chatbots, CRM, and industry growth systems designed for UK SME owners and operators.",
+      "Read practical playbooks on websites, SEO, automation, chatbots, CRM, and industry growth systems designed for UK SME owners and operators.",
       "/blog",
     ),
     image: "/media/blog/websites-01.svg",
@@ -195,7 +276,7 @@ const industryRoutes: RouteMetadataEntry[] = industries.map((industry) => ({
   path: `/industries/${industry.slug}`,
   title: toTitle(`${industry.name} Growth Systems`),
   description: toDescription(
-    `${industry.name} revenue systems for UK businesses: fix response speed, lead qualification, booking workflows, and reporting visibility with industry-fit automations.`,
+    `${industry.name} Business OS for UK businesses: fix visibility, response speed, missed leads, and booking conversion with tailored modules and practical deployment support.`,
     `/industries/${industry.slug}`,
   ),
   image: industry.coverImage,

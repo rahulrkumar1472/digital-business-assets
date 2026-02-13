@@ -8,10 +8,10 @@ export function homeFaqs(): FaqItem[] {
   return [
     q(
       "How quickly can we launch?",
-      "Most website-first deployments start within days and can launch in 72 hours when core assets are ready. See [Website Builds](/services/websites-in-72-hours) for the exact sprint model.",
+      "Most website-first deployments start within days and can launch in 72 hours when core assets are ready. See [Website Builds](/services/website-starter-build) for the exact sprint model.",
     ),
     q(
-      "What does £99/month actually include?",
+      "What does £79/month actually include?",
       "The entry tier covers core conversion assets and support. Advanced automation, chatbot, and reporting layers are mapped in [Pricing](/pricing) based on complexity.",
     ),
     q(
@@ -28,7 +28,7 @@ export function homeFaqs(): FaqItem[] {
     ),
     q(
       "How do you reduce missed leads?",
-      "We combine missed-call recovery, chatbot qualification, response routing, and reminder sequences. See [Automations + Workflows](/services/automations-workflows).",
+      "We combine missed-call recovery, chatbot qualification, response routing, and reminder sequences. See [Automations + Workflows](/services/follow-up-automation).",
     ),
     q(
       "Will this work with our existing tools?",
@@ -36,7 +36,7 @@ export function homeFaqs(): FaqItem[] {
     ),
     q(
       "How do we track ROI?",
-      "Every implementation includes KPI tracking from lead source to booking and revenue. See [Reporting Dashboards](/services/reporting-dashboards).",
+      "Every implementation includes KPI tracking from lead source to booking and revenue. See [Reporting Dashboards](/services/crm-setup).",
     ),
     q(
       "Do you provide strategy or execution?",
@@ -53,10 +53,10 @@ export function servicesFaqs(): FaqItem[] {
   return [
     q("Can we start with one module first?", "Yes. Most teams start with the highest-leverage bottleneck and layer other modules after results. Compare options on [Services](/services)."),
     q("How long does a full stack deployment take?", "A website sprint can launch in 72 hours, while full automation and optimisation usually roll out over 7 to 30 days."),
-    q("Which service is best for low lead quality?", "Start with positioning, conversion pages, and qualification flow. See [SEO + AEO](/services/seo-aeo) and [Chatbots](/services/ai-chatbots)."),
-    q("What if follow-up is our main issue?", "Prioritise [CRM + Pipelines](/services/crm-pipelines), [Automations](/services/automations-workflows), and [Booking + Reminders](/services/booking-systems-reminders)."),
-    q("Can you improve phone enquiry conversion?", "Yes. We install missed-call recovery and call handling automation. See [Missed-Call Recovery](/services/missed-call-recovery)."),
-    q("Do services include reporting?", "Every module includes KPI tracking, and advanced plans include owner-level dashboards from [Reporting Dashboards](/services/reporting-dashboards)."),
+    q("Which service is best for low lead quality?", "Start with positioning, conversion pages, and qualification flow. See [SEO + AEO](/services/seo-upgrade-pack) and [Chatbots](/services/ai-chatbot-install)."),
+    q("What if follow-up is our main issue?", "Prioritise [CRM + Pipelines](/services/crm-setup), [Automations](/services/follow-up-automation), and [Booking + Reminders](/services/booking-system-setup)."),
+    q("Can you improve phone enquiry conversion?", "Yes. We install missed-call recovery and call handling automation. See [Missed-Call Recovery](/services/call-tracking-missed-call-capture)."),
+    q("Do services include reporting?", "Every module includes KPI tracking, and advanced plans include owner-level dashboards from [Reporting Dashboards](/services/crm-setup)."),
     q("Can we integrate WhatsApp and forms together?", "Yes. We unify channel capture and route leads into one CRM pipeline with visibility across all sources."),
     q("How do we choose between plans?", "Run [Growth Simulator](/growth-simulator), then book a call on [Book](/book) for a practical recommendation."),
     q("Do you provide training?", "Yes. We include operational handover and weekly optimisation guidance so teams can run workflows confidently."),
@@ -86,7 +86,7 @@ export function industriesFaqs(): FaqItem[] {
     q("How do you adapt to longer sales cycles?", "We map stages, set follow-up logic, and add KPI checkpoints so longer pipelines stay controlled."),
     q("Which industries usually see fastest gains?", "Teams with slow response and manual follow-up often improve fastest after automation and booking upgrades."),
     q("Do you support compliance-sensitive sectors?", "Yes. We use compliance-safe messaging patterns and avoid unverifiable claims in regulated categories."),
-    q("Can we combine industry pages with SEO strategy?", "Yes. We pair industry pages with [SEO + AEO](/services/seo-aeo) for topical visibility and conversion depth."),
+    q("Can we combine industry pages with SEO strategy?", "Yes. We pair industry pages with [SEO + AEO](/services/seo-upgrade-pack) for topical visibility and conversion depth."),
     q("How are industry case studies used?", "We use case evidence to set realistic baseline targets and prioritise the highest-impact sequence."),
     q("Can one business target multiple verticals?", "Yes. We can build segmented journeys with unique qualification and reporting per segment."),
     q("What if our industry is not listed?", "Book through [Contact](/contact) and we will map a comparable deployment model using adjacent sector data."),
@@ -141,7 +141,7 @@ export function caseStudyDetailFaqs(caseTitle: string): FaqItem[] {
 
 export function pricingFaqs(): FaqItem[] {
   return [
-    q("What is included in the £99 plan?", "Core conversion support and foundational system assets. Higher tiers add deeper automation, chatbot, and analytics layers."),
+    q("What is included in the £79 plan?", "Core conversion support and foundational system assets. Higher tiers add deeper automation, chatbot, and analytics layers."),
     q("Is there a setup fee?", "Setup scope depends on complexity and existing systems. We provide transparent costs before implementation starts."),
     q("Can we upgrade later?", "Yes. Most clients start lean and move to Growth or Scale once early KPIs justify expansion."),
     q("Do plans include strategy calls?", "Yes. Plans include review cadence based on tier and implementation stage."),

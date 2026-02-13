@@ -61,7 +61,7 @@ export function SiteHeader() {
               <SheetHeader>
                 <SheetTitle>Digital Business Assets</SheetTitle>
                 <SheetDescription className="text-slate-400">
-                  AI revenue systems for UK businesses.
+                  Business OS systems for UK growth-focused businesses.
                 </SheetDescription>
               </SheetHeader>
               <div className="mt-6 flex flex-col gap-3 px-4">

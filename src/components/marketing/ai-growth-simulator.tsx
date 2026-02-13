@@ -202,31 +202,31 @@ export function AIGrowthSimulator({ mode = "preview", className }: AIGrowthSimul
     const moduleRecommendations = [
       {
         label: "Website conversion layer",
-        href: "/services/websites-in-72-hours",
+        href: "/services/website-starter-build",
         reason: "Clarify offer and capture intent faster.",
         checked: traffic.google > 30 || conversionBase < 0.18,
       },
       {
         label: "Missed-call recovery",
-        href: "/services/missed-call-recovery",
+        href: "/services/call-tracking-missed-call-capture",
         reason: "Recover demand before competitors reply.",
         checked: form.responseTimeMinutes > 12,
       },
       {
         label: "CRM + workflow automation",
-        href: "/services/automations-workflows",
+        href: "/services/follow-up-automation",
         reason: "Enforce follow-up and stage progression.",
         checked: form.followUpMaturity < 4,
       },
       {
         label: "Booking + reminders",
-        href: "/services/booking-systems-reminders",
+        href: "/services/booking-system-setup",
         reason: "Reduce no-show loss and improve attendance.",
         checked: form.noShowRate > 12,
       },
       {
         label: "SEO + AEO growth layer",
-        href: "/services/seo-aeo",
+        href: "/services/seo-upgrade-pack",
         reason: "Increase qualified demand and answer visibility.",
         checked: traffic.google < 35 || reviewsIndex < 0.4,
       },

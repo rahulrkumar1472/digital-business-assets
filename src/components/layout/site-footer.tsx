@@ -12,7 +12,7 @@ export function SiteFooter() {
             Done-for-you AI revenue systems for UK SMEs. We build websites, automations, chatbots, CRM flows, and
             reporting that convert consistently.
           </p>
-          <p className="text-xs font-medium tracking-[0.08em] text-cyan-300 uppercase">From £99/month</p>
+          <p className="text-xs font-medium tracking-[0.08em] text-cyan-300 uppercase">Starter from £79/month</p>
         </div>
 
         <div>

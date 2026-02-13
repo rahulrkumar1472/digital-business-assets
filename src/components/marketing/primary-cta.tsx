@@ -51,8 +51,8 @@ export function PrimaryCTA({
         variant={secondary ? "outline" : "default"}
         className={cn(
           secondary
-            ? "border-slate-700 bg-slate-900/40 text-slate-100 hover:bg-slate-800"
-            : "bg-cyan-300 text-slate-950 shadow-[0_0_40px_rgba(34,211,238,0.32)] transition-all hover:-translate-y-0.5 hover:bg-cyan-200 hover:shadow-[0_0_55px_rgba(34,211,238,0.46)]",
+            ? "h-11 rounded-xl border-slate-700 bg-slate-900/40 px-5 text-slate-100 hover:bg-slate-800"
+            : "h-12 rounded-xl border border-cyan-200/30 bg-[linear-gradient(135deg,#67e8f9,#22d3ee)] px-6 text-base font-semibold text-slate-950 shadow-[0_14px_44px_rgba(34,211,238,0.34)] transition-all hover:-translate-y-0.5 hover:shadow-[0_18px_58px_rgba(34,211,238,0.44)] hover:ring-1 hover:ring-cyan-200/45",
           className,
         )}
       >
@@ -70,7 +70,7 @@ export function PrimaryCTA({
           size={size}
           onClick={handleClick}
           className={cn(
-            "bg-cyan-300 text-slate-950 shadow-[0_0_40px_rgba(34,211,238,0.32)] transition-all hover:-translate-y-0.5 hover:bg-cyan-200 hover:shadow-[0_0_55px_rgba(34,211,238,0.46)]",
+            "h-12 rounded-xl border border-cyan-200/30 bg-[linear-gradient(135deg,#67e8f9,#22d3ee)] px-6 text-base font-semibold text-slate-950 shadow-[0_14px_44px_rgba(34,211,238,0.34)] transition-all hover:-translate-y-0.5 hover:shadow-[0_18px_58px_rgba(34,211,238,0.44)] hover:ring-1 hover:ring-cyan-200/45",
             className,
           )}
         >

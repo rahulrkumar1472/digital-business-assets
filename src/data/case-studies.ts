@@ -9,18 +9,18 @@ export const caseStudies: CaseStudy[] = [
     location: "Manchester",
     coverImage: "/media/case-1.jpg",
     snapshot:
-      "A roofing company needed a premium website and missed-call recovery before storm-season demand.",
+      "A roofing company needed a fast online presence and reliable missed-call recovery before storm-season demand.",
     challenge:
-      "Most inbound calls were missed while teams were onsite, and follow-up happened too late to win urgent jobs.",
+      "Most inbound calls were missed while teams were onsite, and callbacks happened too late to win urgent jobs.",
     approach: [
       "Launched a conversion-focused website in 72 hours.",
-      "Implemented missed-call text-back + call qualification workflow.",
-      "Connected enquiries to CRM stages with automated quote reminders.",
+      "Installed call tracking + missed-call capture with instant text-back.",
+      "Added CRM follow-up automation for quotes and booking confirmation.",
     ],
     outcomes: [
       { label: "Missed calls recovered", value: "87%" },
       { label: "Survey bookings", value: "+47%" },
-      { label: "Avg. response time", value: "Under 2 min" },
+      { label: "Average response time", value: "Under 2 minutes" },
     ],
     testimonial: {
       quote:
@@ -29,12 +29,12 @@ export const caseStudies: CaseStudy[] = [
       role: "Managing Director",
     },
     serviceSlugs: [
-      "websites-in-72-hours",
-      "missed-call-recovery",
-      "crm-pipelines",
-      "automations-workflows",
+      "website-starter-build",
+      "call-tracking-missed-call-capture",
+      "crm-setup",
+      "follow-up-automation",
     ],
-    industrySlugs: ["trades-home-services", "local-services"],
+    industrySlugs: ["trades-home-services", "local-services", "home-improvement"],
   },
   {
     slug: "dental-clinic-rebrand",
@@ -44,13 +44,13 @@ export const caseStudies: CaseStudy[] = [
     location: "Birmingham",
     coverImage: "/media/case-2.jpg",
     snapshot:
-      "A clinic needed stronger trust signals and a better booking flow for high-value treatments.",
+      "A clinic needed stronger trust positioning and a better booking journey for high-value treatment consultations.",
     challenge:
-      "The old site looked dated, consult bookings were inconsistent, and no-show rates were hurting capacity.",
+      "The old site looked outdated, consult booking flow was weak, and no-show rates were hurting treatment capacity.",
     approach: [
-      "Rebuilt website positioning around treatment outcomes.",
-      "Implemented booking flow with reminders and reschedule logic.",
-      "Set up CRM stages from enquiry to accepted treatment plan.",
+      "Rebuilt website messaging around treatment outcomes.",
+      "Implemented booking and reminder workflows with reschedule logic.",
+      "Configured CRM stages from enquiry to accepted treatment plan.",
     ],
     outcomes: [
       { label: "Consultation no-shows", value: "Down 41%" },
@@ -63,13 +63,8 @@ export const caseStudies: CaseStudy[] = [
       author: "Dr. Priya N.",
       role: "Clinic Owner",
     },
-    serviceSlugs: [
-      "websites-in-72-hours",
-      "booking-systems-reminders",
-      "crm-pipelines",
-      "reporting-dashboards",
-    ],
-    industrySlugs: ["dental-clinics", "health-wellness-clinics"],
+    serviceSlugs: ["website-pro-build", "booking-system-setup", "crm-setup", "follow-up-automation"],
+    industrySlugs: ["medical", "dental-clinics", "beauty"],
   },
   {
     slug: "estate-agency-chatbot",
@@ -79,13 +74,13 @@ export const caseStudies: CaseStudy[] = [
     location: "Leeds",
     coverImage: "/media/case-3.jpg",
     snapshot:
-      "An estate agency wanted to qualify landlord leads outside office hours and book valuation calls faster.",
+      "An estate agency wanted to qualify landlord leads outside office hours and speed up valuation bookings.",
     challenge:
-      "Most valuation enquiries happened evenings and weekends, then cooled before manual callback.",
+      "Most valuation enquiries arrived evenings and weekends, then cooled before manual callback.",
     approach: [
-      "Deployed an AI assistant for valuation qualification.",
-      "Connected bot outcomes to CRM and booking flow.",
-      "Added high-intent alerts and reporting dashboard.",
+      "Installed an AI chatbot for valuation qualification and handoff.",
+      "Connected lead outcomes into CRM stages and booking flow.",
+      "Added high-intent alerts and follow-up automation.",
     ],
     outcomes: [
       { label: "Out-of-hours qualified leads", value: "+58%" },
@@ -98,29 +93,24 @@ export const caseStudies: CaseStudy[] = [
       author: "Charlotte M.",
       role: "Branch Director",
     },
-    serviceSlugs: [
-      "ai-chatbots",
-      "automations-workflows",
-      "crm-pipelines",
-      "reporting-dashboards",
-    ],
-    industrySlugs: ["estate-agents", "legal-services"],
+    serviceSlugs: ["ai-chatbot-install", "whatsapp-business-setup", "crm-setup", "follow-up-automation"],
+    industrySlugs: ["real-estate", "property-management"],
   },
   {
     slug: "physio-practice-local-seo",
-    title: "SEO + AEO engine that increased organic bookings",
+    title: "SEO growth engine increased organic bookings",
     clientName: "Core Motion Physio",
-    clientSector: "Clinics",
+    clientSector: "Medical",
     location: "Bristol",
     coverImage: "/media/case-2.jpg",
     snapshot:
-      "A physiotherapy clinic needed better local visibility and clearer conversion flow from search.",
+      "A physiotherapy clinic needed stronger local visibility and cleaner conversion flow from search traffic.",
     challenge:
-      "Location pages were weak, treatment intent content was thin, and there was no clear attribution to bookings.",
+      "Location pages were weak, treatment-intent content was thin, and there was no attribution from search to booked consultations.",
     approach: [
-      "Implemented technical SEO and location architecture.",
-      "Built AEO-ready content clusters for core treatments.",
-      "Deployed booking attribution dashboard.",
+      "Implemented technical SEO and service-location architecture.",
+      "Optimised treatment pages for clear buyer intent.",
+      "Connected booking outcomes into reporting dashboard view.",
     ],
     outcomes: [
       { label: "Organic traffic", value: "+64%" },
@@ -133,8 +123,8 @@ export const caseStudies: CaseStudy[] = [
       author: "Tom W.",
       role: "Practice Manager",
     },
-    serviceSlugs: ["seo-aeo", "booking-systems-reminders", "reporting-dashboards"],
-    industrySlugs: ["health-wellness-clinics"],
+    serviceSlugs: ["seo-upgrade-pack", "website-pro-build", "booking-system-setup", "ads-launch-pack"],
+    industrySlugs: ["medical", "beauty"],
   },
 ];
 

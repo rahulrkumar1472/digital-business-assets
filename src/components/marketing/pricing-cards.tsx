@@ -8,6 +8,7 @@ type PricingTier = {
   name: string;
   price: string;
   descriptor: string;
+  limits: string;
   bullets: string[];
   highlight?: boolean;
 };
@@ -15,36 +16,39 @@ type PricingTier = {
 const tiers: PricingTier[] = [
   {
     name: "Starter",
-    price: "£99/mo",
-    descriptor: "For businesses that need launch speed.",
+    price: "£79/mo",
+    descriptor: "For businesses moving from offline/basic digital into a deployable Business OS.",
+    limits: "Deploy up to 2 modules",
     bullets: [
-      "72-hour website sprint",
-      "Lead capture form setup",
-      "Core SEO baseline",
-      "Monthly support",
+      "Website Starter Build onboarding",
+      "Lead capture + tracking baseline",
+      "Monthly implementation support",
+      "Transparent add-on menu",
     ],
   },
   {
     name: "Growth",
-    price: "£299/mo",
-    descriptor: "Best for teams scaling qualified leads.",
+    price: "£355/mo",
+    descriptor: "For teams that need predictable lead handling and conversion flow.",
+    limits: "Deploy up to 5 modules",
     bullets: [
       "Everything in Starter",
-      "CRM pipeline and booking flow",
-      "Automated reminders and follow-up",
-      "Monthly growth optimisation",
+      "CRM setup + follow-up automation",
+      "Booking workflow and reminders",
+      "Weekly KPI optimisation cadence",
     ],
     highlight: true,
   },
   {
     name: "Scale",
-    price: "£599/mo",
-    descriptor: "For AI-first sales and operations.",
+    price: "£499/mo",
+    descriptor: "For UK businesses running multi-channel demand and ready to systemise growth.",
+    limits: "Deploy up to 8 modules",
     bullets: [
       "Everything in Growth",
-      "AI chatbot + missed-call recovery",
-      "Cross-platform automations",
-      "Revenue dashboard and reporting",
+      "AI chatbot + WhatsApp layer",
+      "Advanced reporting and dashboards",
+      "Priority deployment queue",
     ],
   },
 ];
@@ -68,11 +72,12 @@ export function PricingCards({ compact = false }: PricingCardsProps) {
             }`}
           >
             {tier.highlight ? (
-              <Badge className="mb-4 border-cyan-400/40 bg-cyan-500/10 text-cyan-200">Recommended</Badge>
+              <Badge className="mb-4 border-cyan-400/40 bg-cyan-500/10 text-cyan-200">Most Popular</Badge>
             ) : null}
             <p className="text-sm font-semibold tracking-[0.08em] text-slate-300 uppercase">{tier.name}</p>
             <p className="mt-2 text-4xl font-semibold text-white">{tier.price}</p>
-            <p className="mt-2 text-sm text-slate-300">{tier.descriptor}</p>
+            <p className="mt-2 text-xs text-cyan-200">{tier.limits}</p>
+            <p className="mt-3 text-sm text-slate-300">{tier.descriptor}</p>
             <ul className="mt-5 space-y-2 text-sm text-slate-200">
               {tier.bullets.map((item) => (
                 <li key={item} className="flex items-start gap-2">
