@@ -1,88 +1,104 @@
 import { CheckCircle2 } from "lucide-react";
 
-import { CtaBanner } from "@/components/shared/cta-banner";
-import { PageHero } from "@/components/shared/page-hero";
-import { Reveal } from "@/components/shared/reveal";
-import { Section } from "@/components/shared/section";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DeepSeoContent } from "@/components/marketing/deep-seo-content";
+import { FAQ } from "@/components/marketing/faq";
+import { FinalCTA } from "@/components/marketing/final-cta";
+import { MotionReveal } from "@/components/marketing/motion-reveal";
+import { SectionBlock } from "@/components/marketing/section-block";
+import { JsonLd } from "@/components/shared/json-ld";
+import { aboutFaqs } from "@/data/page-faqs";
 import { buildMetadata } from "@/lib/seo";
+import { faqSchema } from "@/lib/schema";
+import { faqToSchemaItems } from "@/lib/schema-helpers";
 
-export const metadata = buildMetadata({
-  title: "About | Digital Business Assets",
-  description:
-    "Meet Digital Business Assets, an AI-first digital agency building websites and growth systems for UK SMEs.",
-  path: "/about",
-});
+export const metadata = buildMetadata({ path: "/about" });
 
-const values = [
-  {
-    title: "Speed with accountability",
-    detail:
-      "We ship quickly, but every build includes tracking, QA, and clear ownership so outcomes stay measurable.",
-  },
-  {
-    title: "Systems over one-off projects",
-    detail:
-      "We design connected workflows that reduce manual effort and keep delivering value after launch.",
-  },
-  {
-    title: "Commercial focus",
-    detail:
-      "Every decision maps to lead quality, response time, conversion rate, or customer retention.",
-  },
+const outcomes = [
+  "Revenue systems shipped quickly with measurable ownership.",
+  "Operational automation that reduces manual bottlenecks.",
+  "Clear KPI visibility for founders and team leads.",
+  "Repeatable delivery process across different industries.",
 ];
+
+const checklist = [
+  "Business model and offer audit",
+  "System architecture and implementation plan",
+  "Build and integration execution",
+  "QA, go-live, and optimisation handover",
+];
+
+const proof = [
+  { label: "Experience building digital systems", value: "15+ years" },
+  { label: "Website sprint launch window", value: "72 hours" },
+  { label: "Automation deployment cadence", value: "7-30 days" },
+];
+
+const faqs = aboutFaqs();
 
 export default function AboutPage() {
   return (
     <>
-      <PageHero
-        eyebrow="About"
-        title="We build digital systems that make growth repeatable"
-        description="Digital Business Assets is an AI-first agency built for UK SMEs that need practical execution, not endless strategy decks."
-      />
+      <JsonLd data={faqSchema(faqToSchemaItems(faqs))} />
 
-      <Section className="py-8 md:py-14">
-        <div className="grid gap-6 lg:grid-cols-3">
-          {values.map((value, index) => (
-            <Reveal key={value.title} delay={index * 0.06}>
-              <Card className="h-full border-slate-800 bg-slate-900/35">
-                <CardHeader>
-                  <CardTitle className="text-2xl text-white">{value.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm leading-relaxed text-slate-300">{value.detail}</p>
-                </CardContent>
-              </Card>
-            </Reveal>
+      <SectionBlock className="pt-18 md:pt-24">
+        <MotionReveal className="max-w-4xl">
+          <p className="text-xs font-semibold tracking-[0.2em] text-cyan-300 uppercase">About</p>
+          <h1 className="mt-3 text-4xl font-semibold text-white md:text-6xl">We build revenue systems, not marketing fluff</h1>
+          <p className="mt-4 text-sm leading-relaxed text-slate-300 md:text-lg">Digital Business Assets helps UK SMEs launch premium websites and AI automation stacks that improve lead conversion and operational efficiency.</p>
+        </MotionReveal>
+      </SectionBlock>
+
+      <SectionBlock className="pt-4">
+        <MotionReveal className="max-w-4xl"><h2 className="text-3xl font-semibold text-white md:text-4xl">What clients hire us for</h2></MotionReveal>
+        <ul className="mt-6 grid gap-3 md:grid-cols-2">
+          {outcomes.map((item, index) => (
+            <MotionReveal key={item} delay={index * 0.05}><li className="rounded-2xl border border-slate-800 bg-slate-900/45 p-4 text-sm text-slate-200"><CheckCircle2 className="mb-2 size-4 text-cyan-300" />{item}</li></MotionReveal>
+          ))}
+        </ul>
+      </SectionBlock>
+
+      <SectionBlock>
+        <MotionReveal className="max-w-4xl"><h2 className="text-3xl font-semibold text-white md:text-4xl">What&apos;s included in our engagements</h2></MotionReveal>
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          {checklist.map((item, index) => (
+            <MotionReveal key={item} delay={index * 0.05}><div className="rounded-xl border border-slate-800 bg-slate-900/45 p-4 text-sm text-slate-200">{item}</div></MotionReveal>
           ))}
         </div>
-      </Section>
+      </SectionBlock>
 
-      <Section className="py-14 md:py-18">
-        <Reveal>
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/35 p-8 md:p-10">
-            <h2 className="text-3xl font-semibold text-white">What working with us looks like</h2>
-            <ul className="mt-6 space-y-3 text-sm text-slate-300">
-              {[
-                "Rapid discovery focused on revenue blockers",
-                "Production build with clear milestones and QA",
-                "Automation and analytics deployment",
-                "Monthly optimisation based on real conversion data",
-              ].map((item) => (
-                <li key={item} className="flex items-start gap-2">
-                  <CheckCircle2 className="mt-0.5 size-4 text-cyan-300" />
-                  <span>{item}</span>
-                </li>
+      <SectionBlock>
+        <MotionReveal>
+          <div className="rounded-3xl border border-slate-800 bg-slate-900/45 p-8">
+            <h2 className="text-3xl font-semibold text-white">How we operate</h2>
+            <div className="mt-5 grid gap-4 md:grid-cols-4">
+              {["Business audit and offer clarity", "72-hour website + conversion layer", "Automation, CRM, and follow-up deployment", "Monthly optimisation and reporting"].map((step, index) => (
+                <div key={step} className="rounded-xl border border-slate-800 bg-slate-950/65 p-4"><p className="text-xs text-cyan-300">Step {index + 1}</p><p className="mt-2 text-sm text-slate-300">{step}</p></div>
               ))}
-            </ul>
+            </div>
           </div>
-        </Reveal>
-      </Section>
+        </MotionReveal>
+      </SectionBlock>
 
-      <CtaBanner
-        title="Want to work with a team that ships fast and clean?"
-        description="Tell us your current bottlenecks and we will map a practical roadmap to launch and scale."
-      />
+      <SectionBlock>
+        <div className="grid gap-4 md:grid-cols-3">
+          {proof.map((item, index) => (
+            <MotionReveal key={item.label} delay={index * 0.05}><div className="rounded-2xl border border-slate-800 bg-slate-900/45 p-5"><p className="text-xs text-slate-400">{item.label}</p><p className="mt-2 text-2xl font-semibold text-cyan-200">{item.value}</p></div></MotionReveal>
+          ))}
+        </div>
+      </SectionBlock>
+
+      <SectionBlock>
+        <DeepSeoContent topic="Execution-first agency operating model" audience="UK SMEs that need deployed systems, not generic advice" image="/media/hero-ai.jpg" />
+      </SectionBlock>
+
+      <SectionBlock>
+        <MotionReveal className="max-w-3xl"><p className="text-xs font-semibold tracking-[0.2em] text-cyan-300 uppercase">FAQ</p><h2 className="mt-3 text-3xl font-semibold text-white md:text-4xl">About our delivery model</h2></MotionReveal>
+        <div className="mt-8"><FAQ items={faqs} /></div>
+      </SectionBlock>
+
+      <SectionBlock className="pt-2 pb-20">
+        <FinalCTA title="Need an operator-focused partner for your growth stack?" description="We will map your current bottlenecks and deploy the first high-impact system quickly." />
+      </SectionBlock>
     </>
   );
 }

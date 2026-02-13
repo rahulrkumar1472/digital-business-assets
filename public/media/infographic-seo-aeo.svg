@@ -1,0 +1,12 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='675' viewBox='0 0 1200 675'>
+  <rect width='1200' height='675' fill='#0b1120'/>
+  <text x='60' y='110' fill='#e2e8f0' font-size='44' font-family='Arial'>SEO + AEO Visibility Stack</text>
+  <circle cx='260' cy='310' r='120' fill='#082f49' stroke='#22d3ee'/>
+  <circle cx='520' cy='310' r='120' fill='#082f49' stroke='#22d3ee'/>
+  <circle cx='780' cy='310' r='120' fill='#082f49' stroke='#22d3ee'/>
+  <circle cx='1040' cy='310' r='120' fill='#082f49' stroke='#22d3ee'/>
+  <text x='210' y='320' fill='#cbd5e1' font-size='24' font-family='Arial'>Intent</text>
+  <text x='460' y='320' fill='#cbd5e1' font-size='24' font-family='Arial'>Content</text>
+  <text x='730' y='320' fill='#cbd5e1' font-size='24' font-family='Arial'>Schema</text>
+  <text x='980' y='320' fill='#cbd5e1' font-size='24' font-family='Arial'>Answers</text>
+</svg>

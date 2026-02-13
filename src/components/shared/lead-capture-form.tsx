@@ -6,6 +6,7 @@ import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { trackEvent } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 
 type LeadFormState = {
@@ -70,6 +71,7 @@ export function LeadCaptureForm({ className, compact = false }: LeadCaptureFormP
   const [errors, setErrors] = useState<LeadFormErrors>({});
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const fields = useMemo(
     () => [
@@ -109,6 +111,7 @@ export function LeadCaptureForm({ className, compact = false }: LeadCaptureFormP
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setSubmitError(null);
     const validationErrors = validate(form);
 
     if (Object.keys(validationErrors).length > 0) {
@@ -117,12 +120,40 @@ export function LeadCaptureForm({ className, compact = false }: LeadCaptureFormP
     }
 
     setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    try {
+      const response = await fetch("/api/lead", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...form,
+          source: "lead-capture-form",
+        }),
+      });
 
-    console.log("Lead capture submission", {
-      ...form,
-      submittedAt: new Date().toISOString(),
-    });
+      const data = (await response.json()) as {
+        success?: boolean;
+        message?: string;
+        errors?: string[];
+      };
+
+      if (!response.ok || !data.success) {
+        const firstError = data.errors?.[0];
+        setSubmitError(firstError || data.message || "We could not submit your request right now.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      trackEvent("lead_form_submitted", {
+        source: "lead_capture_form",
+      });
+    } catch (error) {
+      console.error("Lead form submit failed", error);
+      setSubmitError("Network issue. Please try again in a moment.");
+      setIsSubmitting(false);
+      return;
+    }
 
     setSubmitted(true);
     setIsSubmitting(false);
@@ -209,8 +240,9 @@ export function LeadCaptureForm({ className, compact = false }: LeadCaptureFormP
       >
         {isSubmitting ? "Submitting..." : "Get My Free Build Plan"}
       </Button>
+      {submitError ? <p className="text-center text-xs text-red-300">{submitError}</p> : null}
       <p className="text-center text-xs text-slate-400">
-        We do not sell your data. This form only logs locally while backend integration is pending.
+        We do not sell your data. Form submissions are processed securely and optionally sent to CRM via webhook.
       </p>
     </form>
   );

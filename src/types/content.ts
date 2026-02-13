@@ -67,8 +67,21 @@ export type BlogPost = {
   publishedAt: string;
   readTime: string;
   tags: string[];
+  cluster?: string;
+  infographicImage?: string;
+  summary?: string;
+  ctaBlocks?: Array<{
+    headline: string;
+    body: string;
+    primaryLabel: string;
+    primaryHref: string;
+    secondaryLabel?: string;
+    secondaryHref?: string;
+  }>;
+  primaryServiceLink?: string;
   sections: Array<{
     heading: string;
     body: string;
+    bullets?: string[];
   }>;
 };

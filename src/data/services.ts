@@ -2,8 +2,10 @@ import {
   Bot,
   BrainCircuit,
   CalendarClock,
+  ChartNoAxesCombined,
   Gauge,
   MessageSquareReply,
+  Network,
   Workflow,
 } from "lucide-react";
 
@@ -12,261 +14,347 @@ import type { Service } from "@/types/content";
 export const services: Service[] = [
   {
     slug: "websites-in-72-hours",
-    title: "Websites in 72 Hours",
-    strapline: "Launch faster than your competitors can quote.",
+    title: "Website Builds in 72 Hours",
+    strapline: "Launch a premium website that converts quickly.",
     shortDescription:
-      "Conversion-focused websites shipped in 72 hours with clear messaging, lead capture, and booking journeys built in.",
+      "Done-for-you high-performance websites with clear offers, conversion paths, and CRM-connected lead capture.",
     longDescription:
-      "Most SME websites lose revenue because they are slow to launch, unclear, and disconnected from follow-up systems. We build and publish your new site in 72 hours with performance, conversion paths, and CRM-ready forms from day one.",
+      "We build and ship your core website stack in 72 hours, designed for lead generation and conversion from day one.",
     entryPrice: "From £99/month",
-    timeline: "72-hour sprint",
-    image: "/service-websites.jpg",
+    timeline: "72-hour launch",
+    image: "/media/services-web.jpg",
     icon: Gauge,
     problems: [
-      "Outdated design makes your brand look smaller than you are.",
-      "No clear calls to action means visitors leave without enquiring.",
-      "Build projects drag on for weeks and eat internal time.",
+      "Website looks outdated and does not build trust",
+      "Visitors do not know where to click or how to book",
+      "No lead data flowing into CRM",
     ],
     outcomes: [
-      "Faster go-live with no scope drift.",
-      "Clear page hierarchy that drives quote requests.",
-      "A website your team can confidently use in sales conversations.",
+      "Premium positioning with clear CTA hierarchy",
+      "Higher enquiry-to-booking conversion",
+      "Trackable lead events from first click",
     ],
     deliverables: [
-      "Homepage + key service pages + contact funnel",
-      "Mobile-first UX and technical SEO baseline",
-      "Lead capture forms connected to your CRM pipeline",
-      "Analytics and conversion event tracking setup",
+      "Homepage + service pages + conversion funnel",
+      "Lead forms, call CTAs, and booking intent blocks",
+      "Speed and technical SEO foundation",
+      "CRM handoff and conversion event tracking",
     ],
     faqs: [
       {
-        question: "Can you migrate our existing content?",
+        question: "Can you launch in 72 hours without sacrificing quality?",
         answer:
-          "Yes. We migrate priority pages first so your revenue pages go live inside the 72-hour window, then complete long-tail pages in phase two.",
+          "Yes. We run a structured sprint: offer messaging, page framework, conversion modules, QA, then deployment.",
       },
       {
-        question: "Do we own the website?",
+        question: "Can this replace our current website?",
         answer:
-          "Yes. You own domain, content, and assets. We keep the build modular so another team can maintain it if needed.",
+          "Yes. We migrate key pages first, then phase remaining content so you do not lose momentum.",
       },
     ],
     caseStudySlugs: ["roofing-co-fast-launch", "dental-clinic-rebrand"],
-    industrySlugs: ["trades-home-services", "dental-clinics"],
+    industrySlugs: ["trades-home-services", "dental-clinics", "local-services"],
   },
   {
     slug: "seo-aeo",
     title: "SEO + AEO",
-    strapline: "Get found in search and AI answers.",
+    strapline: "Win Google search and AI answers together.",
     shortDescription:
-      "Technical SEO and answer-engine optimisation designed for Google, ChatGPT, and AI search experiences.",
+      "Technical SEO and answer-engine optimisation so your business is discoverable where buyers research.",
     longDescription:
-      "Search behaviour has changed. Your buyers still use Google, but they increasingly rely on AI assistants for recommendations. We optimise your website architecture, topical authority, and entity signals so your business appears in both traditional search and AI-generated answers.",
+      "We structure your website for search intent and AI retrieval, then compound authority with conversion-aligned content.",
     entryPrice: "From £149/month",
-    timeline: "First gains in 30-60 days",
-    image: "/service-seo-aeo.jpg",
+    timeline: "30-60 day lift",
+    image: "/media/services-seo.jpg",
     icon: BrainCircuit,
     problems: [
-      "You are invisible for high-intent local searches.",
-      "Your pages are not structured for AI citation or extraction.",
-      "SEO work lacks clear commercial priorities.",
+      "Low visibility for high-intent terms",
+      "No AI answer presence for service queries",
+      "Content is generic and unstructured",
     ],
     outcomes: [
-      "Higher rankings for revenue-driven keywords.",
-      "Improved visibility in AI answer surfaces.",
-      "More qualified organic leads month over month.",
+      "Improved rankings and qualified traffic",
+      "Better citation likelihood in AI assistants",
+      "Clear attribution from search to pipeline",
     ],
     deliverables: [
-      "Technical SEO audit + implementation roadmap",
-      "AEO content briefs and schema support",
-      "Monthly authority content production",
-      "Rankings, traffic, and pipeline reporting",
+      "Technical SEO and content architecture",
+      "Service schema and AEO-ready page structures",
+      "Monthly content and authority roadmap",
+      "Performance reporting tied to leads",
     ],
     faqs: [
       {
-        question: "How is AEO different from SEO?",
+        question: "Do you handle both local and national SEO?",
         answer:
-          "SEO targets search rankings, while AEO improves how clearly AI systems can parse, trust, and cite your content in generated answers.",
+          "Yes. We design location clusters and broader category coverage based on your sales footprint.",
       },
       {
-        question: "Do you handle local SEO for UK areas?",
+        question: "How soon do we see results?",
         answer:
-          "Yes. We build local landing pages, map optimisation, and citation consistency around your real service regions.",
+          "Most clients see movement in 4-8 weeks, with stronger gains as technical and content layers mature.",
       },
     ],
     caseStudySlugs: ["physio-practice-local-seo"],
-    industrySlugs: ["health-wellness-clinics", "legal-services"],
+    industrySlugs: ["health-wellness-clinics", "legal-services", "ecommerce-brands"],
   },
   {
     slug: "ai-chatbots",
-    title: "AI Chatbots",
-    strapline: "Turn website traffic into booked conversations 24/7.",
+    title: "Chatbots + AI Assistants",
+    strapline: "Qualify and book leads while your team is offline.",
     shortDescription:
-      "Custom AI chatbots trained on your services to qualify leads, answer objections, and route bookings instantly.",
+      "AI assistants trained on your offers to handle objections, pre-qualify leads, and route bookings.",
     longDescription:
-      "Most websites leak leads after hours because nobody responds. We deploy AI chatbots that handle first-contact conversations, qualify intent, capture details, and hand over to your team or calendar in real time.",
+      "We deploy bot flows that act like a top-performing SDR: instant response, qualification logic, and clean handoff to CRM.",
     entryPrice: "From £199/month",
     timeline: "7-day deployment",
-    image: "/service-ai-chatbots.jpg",
+    image: "/media/services-automation.jpg",
     icon: Bot,
     problems: [
-      "Leads arrive outside office hours and go cold.",
-      "Prospects ask repetitive questions before booking.",
-      "Sales teams waste time on low-intent enquiries.",
+      "Slow first response outside office hours",
+      "Manual pre-qualification wastes team time",
+      "Enquiries arrive without context",
     ],
     outcomes: [
-      "Faster first response time with no extra hires.",
-      "Higher lead qualification quality.",
-      "More booked calls from existing traffic.",
+      "24/7 response and lead capture",
+      "Higher booking intent quality",
+      "Faster sales handover with context",
     ],
     deliverables: [
-      "Conversation design based on your sales process",
-      "Knowledge base ingestion from your website and docs",
-      "CRM and calendar hand-off automation",
-      "Conversation analytics and weekly optimisation",
+      "Conversation architecture and guardrails",
+      "Knowledge ingestion from your offers",
+      "CRM and calendar handoff logic",
+      "Conversation analytics and optimisation",
     ],
     faqs: [
       {
-        question: "Will the bot sound robotic?",
+        question: "Will the assistant sound generic?",
         answer:
-          "No. We tune tone and prompts around your brand voice and include escalation rules for human handover.",
+          "No. We tune tone, prompts, and qualification branches around your sales process.",
       },
       {
-        question: "Can it integrate with our CRM?",
+        question: "Can it route urgent enquiries?",
         answer:
-          "Yes. We connect to common CRM systems and can push qualified leads with tags, summaries, and source metadata.",
+          "Yes. We implement intent-based escalation for high-value or urgent requests.",
       },
     ],
     caseStudySlugs: ["estate-agency-chatbot"],
-    industrySlugs: ["estate-agents", "legal-services"],
+    industrySlugs: ["estate-agents", "legal-services", "gyms-fitness"],
+  },
+  {
+    slug: "crm-pipelines",
+    title: "CRM + Pipelines",
+    strapline: "Move every lead through a visible, accountable pipeline.",
+    shortDescription:
+      "CRM architecture, stage design, and ownership workflows so no lead gets lost.",
+    longDescription:
+      "We build your CRM operating model with clear stages, SLAs, and automations that turn pipeline chaos into predictable growth.",
+    entryPrice: "From £129/month",
+    timeline: "5-day setup",
+    image: "/media/services-automation.jpg",
+    icon: Network,
+    problems: [
+      "Leads scattered across inboxes and spreadsheets",
+      "No clear stage ownership",
+      "No visibility into conversion bottlenecks",
+    ],
+    outcomes: [
+      "Single source of truth for sales activity",
+      "Faster follow-up and cleaner stage progression",
+      "More predictable conversion reporting",
+    ],
+    deliverables: [
+      "Pipeline architecture and stage definitions",
+      "Lead source and quality tagging",
+      "SLA reminders and task automation",
+      "Weekly KPI reporting setup",
+    ],
+    faqs: [
+      {
+        question: "Can we keep our current CRM?",
+        answer:
+          "Yes. We optimise your existing stack where possible and only recommend migration when required.",
+      },
+      {
+        question: "Will this work for small teams?",
+        answer:
+          "Yes. We design lean processes that improve accountability without adding admin burden.",
+      },
+    ],
+    caseStudySlugs: ["dental-clinic-rebrand", "estate-agency-chatbot"],
+    industrySlugs: ["dental-clinics", "estate-agents", "local-services"],
   },
   {
     slug: "automations-workflows",
-    title: "Automations & Workflows",
-    strapline: "Remove admin bottlenecks and scale operations.",
+    title: "Automations + Workflows",
+    strapline: "Automate repetitive tasks across your stack.",
     shortDescription:
-      "Workflow automations that move leads, tasks, and client updates across your tools without manual chasing.",
+      "Webhook-first workflows that connect forms, CRM, notifications, and delivery tasks with reliability.",
     longDescription:
-      "When your team copies data between tools, errors and delays pile up. We design automations that connect forms, CRM, booking, billing, and notifications so every lead and customer moves through a reliable, repeatable process.",
+      "We map high-friction workflows and deploy automations with retries, alerts, and reporting to reduce manual bottlenecks.",
     entryPrice: "From £149/month",
-    timeline: "10-14 day rollout",
-    image: "/service-automations-workflows.jpg",
+    timeline: "7-14 day rollout",
+    image: "/media/services-automation.jpg",
     icon: Workflow,
     problems: [
-      "Leads sit in inboxes because no one owns follow-up.",
-      "Manual admin steals time from delivery and sales.",
-      "No visibility into where deals get stuck.",
+      "Manual task chasing slows response times",
+      "Teams duplicate work across tools",
+      "No failure alerting for critical processes",
     ],
     outcomes: [
-      "Consistent lead-to-sale workflow execution.",
-      "Reduced operational overhead and fewer dropped tasks.",
-      "Clear pipeline data for better decisions.",
+      "Faster lead-to-booking turnaround",
+      "Reduced operational overhead",
+      "Reliable automation with visibility",
     ],
     deliverables: [
-      "Workflow mapping for front-office and back-office flows",
-      "Webhook-first automation architecture",
-      "Retry logic and alerting for failed steps",
-      "Operational dashboard setup with key SLA metrics",
+      "Workflow mapping and bottleneck analysis",
+      "Webhook/API automation setup",
+      "Failure handling and alerting",
+      "Operational runbook and dashboards",
     ],
     faqs: [
       {
-        question: "Do automations break easily?",
+        question: "Can you connect mixed tool stacks?",
         answer:
-          "We build with retries, logging, and failure alerts so your team knows when to intervene before revenue is affected.",
+          "Yes. We combine native integrations, APIs, and middleware when needed.",
       },
       {
-        question: "Can you automate legacy tools too?",
+        question: "How do we prevent automation breakage?",
         answer:
-          "Usually yes. We combine native integrations, APIs, and middleware connectors depending on tool constraints.",
+          "We include retries, error monitoring, and escalation rules to keep flows stable.",
       },
     ],
     caseStudySlugs: ["roofing-co-fast-launch", "estate-agency-chatbot"],
-    industrySlugs: ["trades-home-services", "estate-agents", "legal-services"],
+    industrySlugs: ["trades-home-services", "estate-agents", "local-services"],
   },
   {
-    slug: "crm-booking-reminders",
-    title: "CRM, Booking & Reminders",
-    strapline: "No-show reduction and cleaner pipelines by default.",
+    slug: "missed-call-recovery",
+    title: "Missed-Call Text-Back + Call Handling",
+    strapline: "Turn missed calls into booked jobs automatically.",
     shortDescription:
-      "Unified CRM and booking systems with automated reminders, pipeline stages, and follow-up sequences.",
+      "Capture inbound demand with instant SMS response, call logging, and qualified callback automation.",
     longDescription:
-      "Scattered leads and missed appointments kill profit. We implement CRM structure, booking flows, and reminder automations that keep prospects engaged from first enquiry to paid job.",
-    entryPrice: "From £129/month",
-    timeline: "5-day setup",
-    image: "/service-crm-booking-reminders.jpg",
-    icon: CalendarClock,
-    problems: [
-      "Leads are tracked in spreadsheets and WhatsApp threads.",
-      "No-shows and delayed responses reduce close rates.",
-      "Owners cannot see conversion stages clearly.",
-    ],
-    outcomes: [
-      "Centralised lead pipeline with ownership.",
-      "Automated reminders that improve attendance.",
-      "Faster quoting and follow-up consistency.",
-    ],
-    deliverables: [
-      "CRM pipeline design and stage definitions",
-      "Booking pages with qualification logic",
-      "SMS and email reminder sequences",
-      "Lead-source attribution and conversion reporting",
-    ],
-    faqs: [
-      {
-        question: "Can we keep our existing CRM?",
-        answer:
-          "Yes. If your current CRM is fit for purpose, we optimise it. If not, we migrate to a better-fit setup with minimal downtime.",
-      },
-      {
-        question: "Do reminder messages stay on brand?",
-        answer:
-          "Yes. We write reminder templates in your tone and include branch logic for confirmations, reschedules, and no-shows.",
-      },
-    ],
-    caseStudySlugs: ["dental-clinic-rebrand", "physio-practice-local-seo"],
-    industrySlugs: ["dental-clinics", "health-wellness-clinics"],
-  },
-  {
-    slug: "24-7-call-answering",
-    title: "24/7 Call Answering",
-    strapline: "Capture every enquiry, even when your team is offline.",
-    shortDescription:
-      "Always-on AI-assisted call handling with booking, qualification, and callback routing so no lead is missed.",
-    longDescription:
-      "If calls go unanswered, revenue disappears. Our 24/7 call-answering setup captures and qualifies inbound calls, books consultations, and routes urgent requests with context to the right team member.",
+      "We deploy missed-call recovery and intelligent call handling so every inbound enquiry gets immediate follow-up.",
     entryPrice: "From £199/month",
-    timeline: "1-2 week onboarding",
-    image: "/service-24-7-call-answering.jpg",
+    timeline: "1 week",
+    image: "/media/services-automation.jpg",
     icon: MessageSquareReply,
     problems: [
-      "Missed calls during jobs, meetings, or after hours.",
-      "Inconsistent call notes and poor follow-up visibility.",
-      "No process for routing hot leads immediately.",
+      "Missed calls during jobs or meetings",
+      "No instant response after missed calls",
+      "Poor call note quality for callbacks",
     ],
     outcomes: [
-      "More captured opportunities from existing demand.",
-      "Structured call summaries synced to your CRM.",
-      "Improved response SLAs and customer experience.",
+      "Higher lead recovery rates",
+      "Faster callback response time",
+      "Improved booking conversion from phone",
     ],
     deliverables: [
-      "AI voice flow design for qualification and triage",
-      "Booking and callback routing automation",
-      "Call transcription and CRM sync",
-      "SLA dashboard for missed call and response rates",
+      "Instant text-back automations",
+      "Call tagging and qualification logic",
+      "Callback booking workflow",
+      "Missed-call recovery reporting",
     ],
     faqs: [
       {
-        question: "Can urgent calls skip the AI flow?",
+        question: "Can urgent calls route directly to staff?",
         answer:
-          "Yes. We set intent-based routing so emergency or high-value calls are escalated immediately.",
+          "Yes. We add urgency rules to bypass automation where required.",
       },
       {
-        question: "Will this replace our team?",
+        question: "Will this integrate with CRM?",
         answer:
-          "No. It handles first response and routine qualification so your team can focus on selling and fulfilment.",
+          "Yes. We sync call outcomes and contact records into your pipeline automatically.",
       },
     ],
-    caseStudySlugs: ["roofing-co-fast-launch", "estate-agency-chatbot"],
-    industrySlugs: ["trades-home-services", "estate-agents"],
+    caseStudySlugs: ["roofing-co-fast-launch"],
+    industrySlugs: ["trades-home-services", "local-services"],
+  },
+  {
+    slug: "booking-systems-reminders",
+    title: "Booking Systems + Reminders",
+    strapline: "Cut no-shows and speed up confirmed appointments.",
+    shortDescription:
+      "Booking pages, reminder flows, and no-show prevention automation tailored to your sales cycle.",
+    longDescription:
+      "We build booking systems that qualify leads, reduce no-shows, and move people from enquiry to confirmed appointment.",
+    entryPrice: "From £129/month",
+    timeline: "5-day setup",
+    image: "/media/services-automation.jpg",
+    icon: CalendarClock,
+    problems: [
+      "Low attendance on booked calls",
+      "Manual reminder workflows",
+      "No reschedule logic in place",
+    ],
+    outcomes: [
+      "Higher show-up rates",
+      "Less admin for front-office teams",
+      "More predictable calendar utilisation",
+    ],
+    deliverables: [
+      "Booking funnel with qualification questions",
+      "SMS and email reminder sequences",
+      "Reschedule and cancellation logic",
+      "Attendance reporting and optimisation",
+    ],
+    faqs: [
+      {
+        question: "Can reminders match our brand tone?",
+        answer:
+          "Yes. We customise reminder language and escalation messaging to your voice.",
+      },
+      {
+        question: "Will this support multiple staff calendars?",
+        answer:
+          "Yes. We can route by service type, location, or team capacity.",
+      },
+    ],
+    caseStudySlugs: ["dental-clinic-rebrand"],
+    industrySlugs: ["dental-clinics", "health-wellness-clinics", "gyms-fitness"],
+  },
+  {
+    slug: "reporting-dashboards",
+    title: "Reporting + Dashboards",
+    strapline: "See what drives revenue in one view.",
+    shortDescription:
+      "Executive dashboards combining lead sources, response times, bookings, and revenue outcomes.",
+    longDescription:
+      "We connect your growth metrics into dashboards that show where deals are won, lost, or delayed, so decisions are data-backed.",
+    entryPrice: "From £149/month",
+    timeline: "7-day setup",
+    image: "/media/services-automation.jpg",
+    icon: ChartNoAxesCombined,
+    problems: [
+      "No single source for performance data",
+      "Reporting takes too long to prepare",
+      "Hard to prove ROI by channel or campaign",
+    ],
+    outcomes: [
+      "Clear weekly growth visibility",
+      "Faster decisions on spend and process",
+      "Reliable attribution from lead to revenue",
+    ],
+    deliverables: [
+      "Dashboard architecture and KPI mapping",
+      "Lead, booking, and revenue connectors",
+      "Weekly executive scorecards",
+      "Alerting for SLA or conversion drops",
+    ],
+    faqs: [
+      {
+        question: "Can we combine ad, CRM, and booking data?",
+        answer:
+          "Yes. We build unified dashboards across your core systems.",
+      },
+      {
+        question: "Do you include dashboard training?",
+        answer:
+          "Yes. We provide owner-level and team-level reporting views with usage guidance.",
+      },
+    ],
+    caseStudySlugs: ["roofing-co-fast-launch", "physio-practice-local-seo"],
+    industrySlugs: ["trades-home-services", "ecommerce-brands", "local-services"],
   },
 ];
 

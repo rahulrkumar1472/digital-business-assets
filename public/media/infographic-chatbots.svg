@@ -1,0 +1,15 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='675' viewBox='0 0 1200 675'>
+  <rect width='1200' height='675' fill='#0a0f1f'/>
+  <text x='60' y='110' fill='#e2e8f0' font-size='44' font-family='Arial'>AI Receptionist Conversation Map</text>
+  <path d='M120 240 Q300 120 480 240 T840 240 T1080 240' fill='none' stroke='#22d3ee' stroke-width='4'/>
+  <circle cx='120' cy='240' r='26' fill='#111827' stroke='#22d3ee'/>
+  <circle cx='360' cy='180' r='26' fill='#111827' stroke='#22d3ee'/>
+  <circle cx='600' cy='240' r='26' fill='#111827' stroke='#22d3ee'/>
+  <circle cx='840' cy='180' r='26' fill='#111827' stroke='#22d3ee'/>
+  <circle cx='1080' cy='240' r='26' fill='#111827' stroke='#22d3ee'/>
+  <text x='80' y='300' fill='#cbd5e1' font-size='20' font-family='Arial'>Enquiry</text>
+  <text x='310' y='130' fill='#cbd5e1' font-size='20' font-family='Arial'>Probe</text>
+  <text x='560' y='300' fill='#cbd5e1' font-size='20' font-family='Arial'>Diagnose</text>
+  <text x='790' y='130' fill='#cbd5e1' font-size='20' font-family='Arial'>Recommend</text>
+  <text x='1030' y='300' fill='#cbd5e1' font-size='20' font-family='Arial'>Book</text>
+</svg>

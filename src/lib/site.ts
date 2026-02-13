@@ -3,7 +3,7 @@ export const siteConfig = {
   legalName: "Digital Business Assets Ltd",
   url: "https://digitalbusinessassets.co.uk",
   description:
-    "AI-first digital agency helping UK SMEs launch high-converting websites, automation, and lead systems from £99/month.",
+    "AI revenue systems for UK businesses: websites, SEO/AEO, automations, chatbots, CRM, missed-call recovery, and reporting from £99/month.",
   email: "hello@digitalbusinessassets.co.uk",
   phone: "+44 20 3000 0000",
   location: "United Kingdom",
@@ -15,12 +15,12 @@ export const siteConfig = {
 
 export const primaryNavigation = [
   { label: "Services", href: "/services" },
-  { label: "Pricing", href: "/pricing" },
-  { label: "Case Studies", href: "/case-studies" },
+  { label: "Growth Simulator", href: "/growth-simulator" },
   { label: "Industries", href: "/industries" },
+  { label: "Case Studies", href: "/case-studies" },
+  { label: "Pricing", href: "/pricing" },
   { label: "About", href: "/about" },
-  { label: "Blog", href: "/blog" },
-  { label: "Contact", href: "/contact" },
+  { label: "Book a Call", href: "/book" },
 ] as const;
 
 export const legalNavigation = [

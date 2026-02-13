@@ -1,0 +1,13 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='675' viewBox='0 0 1200 675'>
+  <rect width='1200' height='675' fill='#0f172a'/>
+  <text x='60' y='110' fill='#e2e8f0' font-size='44' font-family='Arial'>Industry Playbook Timeline</text>
+  <line x1='120' y1='320' x2='1080' y2='320' stroke='#22d3ee' stroke-width='6'/>
+  <circle cx='180' cy='320' r='26' fill='#111827' stroke='#22d3ee'/>
+  <circle cx='420' cy='320' r='26' fill='#111827' stroke='#22d3ee'/>
+  <circle cx='660' cy='320' r='26' fill='#111827' stroke='#22d3ee'/>
+  <circle cx='900' cy='320' r='26' fill='#111827' stroke='#22d3ee'/>
+  <text x='140' y='370' fill='#cbd5e1' font-size='20' font-family='Arial'>Audit</text>
+  <text x='372' y='370' fill='#cbd5e1' font-size='20' font-family='Arial'>Build</text>
+  <text x='612' y='370' fill='#cbd5e1' font-size='20' font-family='Arial'>Automate</text>
+  <text x='860' y='370' fill='#cbd5e1' font-size='20' font-family='Arial'>Optimise</text>
+</svg>

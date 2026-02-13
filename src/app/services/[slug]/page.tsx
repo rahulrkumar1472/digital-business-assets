@@ -1,27 +1,47 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, Layers3, Radar, Workflow } from "lucide-react";
 
-import { CtaActions } from "@/components/shared/cta-actions";
-import { FaqAccordion } from "@/components/shared/faq-accordion";
+import { AutomationFlowDiagram } from "@/components/marketing/automation-flow-diagram";
+import { DeepSeoContent } from "@/components/marketing/deep-seo-content";
+import { FAQ } from "@/components/marketing/faq";
+import { FinalCTA } from "@/components/marketing/final-cta";
+import { FunnelDiagram } from "@/components/marketing/funnel-diagram";
+import { ImageOrPlaceholder } from "@/components/marketing/image-or-placeholder";
+import { KPICharts } from "@/components/marketing/kpi-charts";
+import { MotionReveal } from "@/components/marketing/motion-reveal";
+import { PrimaryCTA } from "@/components/marketing/primary-cta";
+import { SectionBlock } from "@/components/marketing/section-block";
 import { JsonLd } from "@/components/shared/json-ld";
-import { PageHero } from "@/components/shared/page-hero";
-import { Reveal } from "@/components/shared/reveal";
-import { Section } from "@/components/shared/section";
-import { SectionHeading } from "@/components/shared/section-heading";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { caseStudies, getServiceBySlug, industries, services } from "@/data";
+import { caseStudies, getServiceBySlug, services } from "@/data";
+import { serviceDetailFaqs } from "@/data/page-faqs";
 import { buildMetadata } from "@/lib/seo";
-import { serviceSchema } from "@/lib/schema";
+import { breadcrumbSchema, faqSchema, serviceSchema } from "@/lib/schema";
+import { faqToSchemaItems } from "@/lib/schema-helpers";
 
 type ServiceDetailPageProps = {
-  params: Promise<{
-    slug: string;
-  }>;
+  params: Promise<{ slug: string }>;
 };
+
+const toolCards = [
+  {
+    title: "Offer + Conversion Layer",
+    description: "Pages, CTAs, forms, and conversion prompts aligned to buying intent.",
+    icon: Layers3,
+  },
+  {
+    title: "Automation Engine",
+    description: "Lead routing, reminders, and response logic built around your workflow.",
+    icon: Workflow,
+  },
+  {
+    title: "Reporting + Optimisation",
+    description: "KPI tracking for response speed, bookings, and revenue growth.",
+    icon: Radar,
+  },
+];
 
 export async function generateStaticParams() {
   return services.map((service) => ({ slug: service.slug }));
@@ -32,19 +52,10 @@ export async function generateMetadata({ params }: ServiceDetailPageProps): Prom
   const service = getServiceBySlug(slug);
 
   if (!service) {
-    return buildMetadata({
-      title: "Service Not Found | Digital Business Assets",
-      description: "Requested service could not be found.",
-      path: "/services",
-    });
+    return buildMetadata({ path: "/services" });
   }
 
-  return buildMetadata({
-    title: `${service.title} | Digital Business Assets`,
-    description: service.shortDescription,
-    path: `/services/${service.slug}`,
-    image: service.image,
-  });
+  return buildMetadata({ path: `/services/${service.slug}` });
 }
 
 export default async function ServiceDetailPage({ params }: ServiceDetailPageProps) {
@@ -55,214 +66,188 @@ export default async function ServiceDetailPage({ params }: ServiceDetailPagePro
     notFound();
   }
 
-  const relatedCaseStudies = caseStudies.filter((caseStudy) =>
-    service.caseStudySlugs.includes(caseStudy.slug),
-  );
-
-  const relatedIndustries = industries.filter((industry) =>
-    service.industrySlugs.includes(industry.slug),
-  );
-
-  const Icon = service.icon;
+  const relatedCaseStudy = caseStudies.find((caseStudy) => service.caseStudySlugs.includes(caseStudy.slug));
+  const faqs = serviceDetailFaqs(service.title, service.slug);
 
   return (
     <>
+      <JsonLd data={serviceSchema({ name: service.title, description: service.shortDescription, slug: service.slug, offer: service.entryPrice })} />
+      <JsonLd data={faqSchema(faqToSchemaItems(faqs))} />
       <JsonLd
-        data={
-          serviceSchema({
-            name: service.title,
-            description: service.shortDescription,
-            slug: service.slug,
-            offer: service.entryPrice,
-          })
-        }
+        data={breadcrumbSchema([
+          { name: "Home", path: "/" },
+          { name: "Services", path: "/services" },
+          { name: service.title, path: `/services/${service.slug}` },
+        ])}
       />
 
-      <PageHero
-        eyebrow="Service"
-        title={service.title}
-        description={service.longDescription}
-      >
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="inline-flex w-fit items-center gap-3 rounded-xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-3">
-            <Icon className="size-5 text-cyan-300" />
-            <div>
-              <p className="text-xs tracking-[0.1em] text-cyan-200 uppercase">Entry offer</p>
-              <p className="text-sm font-semibold text-white">{service.entryPrice}</p>
-            </div>
-          </div>
-          <div className="inline-flex w-fit items-center gap-3 rounded-xl border border-slate-700 bg-slate-900/45 px-4 py-3">
-            <p className="text-xs tracking-[0.1em] text-slate-400 uppercase">Timeline</p>
-            <p className="text-sm font-semibold text-white">{service.timeline}</p>
-          </div>
-        </div>
-      </PageHero>
-
-      <Section className="pt-0 pb-14">
-        <Reveal>
-          <div className="relative aspect-[21/8] overflow-hidden rounded-2xl border border-slate-800">
-            <Image
-              src={service.image}
-              alt={service.title}
-              fill
-              priority
-              className="object-cover"
-              sizes="(min-width: 1024px) 80vw, 100vw"
-            />
-          </div>
-        </Reveal>
-      </Section>
-
-      <Section className="py-8 md:py-16">
-        <div className="grid gap-6 md:grid-cols-3">
-          <Reveal>
-            <Card className="h-full border-slate-800 bg-slate-900/35">
-              <CardHeader>
-                <CardTitle className="text-lg text-white">Problems we fix</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3 text-sm text-slate-300">
-                  {service.problems.map((problem) => (
-                    <li key={problem} className="flex items-start gap-2">
-                      <CheckCircle2 className="mt-0.5 size-4 text-cyan-300" />
-                      <span>{problem}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          </Reveal>
-
-          <Reveal delay={0.05}>
-            <Card className="h-full border-slate-800 bg-slate-900/35">
-              <CardHeader>
-                <CardTitle className="text-lg text-white">Business outcomes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3 text-sm text-slate-300">
-                  {service.outcomes.map((outcome) => (
-                    <li key={outcome} className="flex items-start gap-2">
-                      <CheckCircle2 className="mt-0.5 size-4 text-cyan-300" />
-                      <span>{outcome}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          </Reveal>
-
-          <Reveal delay={0.1}>
-            <Card className="h-full border-slate-800 bg-slate-900/35">
-              <CardHeader>
-                <CardTitle className="text-lg text-white">Included deliverables</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3 text-sm text-slate-300">
-                  {service.deliverables.map((deliverable) => (
-                    <li key={deliverable} className="flex items-start gap-2">
-                      <CheckCircle2 className="mt-0.5 size-4 text-cyan-300" />
-                      <span>{deliverable}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          </Reveal>
-        </div>
-      </Section>
-
-      <Section className="py-14 md:py-18">
-        <div className="grid gap-8 lg:grid-cols-2">
-          <Reveal>
-            <SectionHeading
-              eyebrow="Proof and relevance"
-              title="Related case studies"
-              description="See how this service performs in real delivery contexts."
-            />
-            <div className="mt-6 space-y-3">
-              {relatedCaseStudies.map((caseStudy) => (
-                <Link
-                  key={caseStudy.slug}
-                  href={`/case-studies/${caseStudy.slug}`}
-                  className="group flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900/35 p-4 transition-colors hover:border-cyan-400/50"
-                >
-                  <div>
-                    <p className="text-sm font-semibold text-white">{caseStudy.title}</p>
-                    <p className="mt-1 text-xs text-slate-400">{caseStudy.clientName}</p>
-                  </div>
-                  <ArrowRight className="size-4 text-cyan-300 transition-transform group-hover:translate-x-1" />
-                </Link>
+      <SectionBlock className="pt-18 md:pt-24">
+        <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+          <MotionReveal>
+            <p className="text-xs font-semibold tracking-[0.2em] text-cyan-300 uppercase">Service</p>
+            <h1 className="mt-3 text-4xl font-semibold text-white md:text-6xl">{service.title}</h1>
+            <p className="mt-3 text-base font-medium text-cyan-200 md:text-lg">{service.strapline}</p>
+            <ul className="mt-4 space-y-2 text-sm text-slate-300 md:text-base">
+              {service.outcomes.slice(0, 3).map((outcome) => (
+                <li key={outcome} className="flex items-start gap-2">
+                  <CheckCircle2 className="mt-0.5 size-4 text-cyan-300" />
+                  {outcome}
+                </li>
               ))}
+            </ul>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <PrimaryCTA />
+              <Button asChild variant="outline" size="lg" className="border-slate-700 bg-slate-900/45 text-slate-100 hover:bg-slate-800">
+                <Link href="/book">Book a Call</Link>
+              </Button>
             </div>
-          </Reveal>
+          </MotionReveal>
 
-          <Reveal delay={0.06}>
-            <SectionHeading
-              eyebrow="Where it fits"
-              title="Industries we deploy this for"
-              description="Pre-configured for these sectors, then adapted to your exact process."
-            />
-            <div className="mt-6 flex flex-wrap gap-3">
-              {relatedIndustries.map((industry) => (
-                <Button
-                  key={industry.slug}
-                  asChild
-                  variant="outline"
-                  className="border-slate-700 bg-slate-900/35 text-slate-100 hover:bg-slate-800"
-                >
-                  <Link href={`/industries/${industry.slug}`}>{industry.name}</Link>
-                </Button>
-              ))}
-            </div>
-            <div className="mt-8 rounded-xl border border-slate-800 bg-slate-900/35 p-5">
-              <p className="text-sm text-slate-300">
-                Need implementation support across multiple services? We can sequence this service with your CRM,
-                booking, and follow-up flows so nothing breaks between tools.
-              </p>
-              <div className="mt-4">
-                <CtaActions
-                  primaryLabel="Get a Free Build Plan"
-                  secondaryHref="/book"
-                  secondaryLabel="Book a Call"
-                />
+          <MotionReveal delay={0.08}>
+            <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/45 p-3">
+              <div className="relative aspect-[4/3] overflow-hidden rounded-xl border border-slate-800">
+                <ImageOrPlaceholder src={service.image} alt={service.title} label={service.title} className="h-full w-full" sizes="(min-width: 1024px) 40vw, 100vw" />
+              </div>
+              <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-3">
+                  <p className="text-[11px] text-slate-400 uppercase">Launch speed</p>
+                  <p className="mt-1 text-sm font-semibold text-white">{service.timeline}</p>
+                </div>
+                <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-3">
+                  <p className="text-[11px] text-slate-400 uppercase">Entry investment</p>
+                  <p className="mt-1 text-sm font-semibold text-white">{service.entryPrice}</p>
+                </div>
+                <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-3">
+                  <p className="text-[11px] text-slate-400 uppercase">Typical uplift</p>
+                  <p className="mt-1 text-sm font-semibold text-white">+12-38%</p>
+                </div>
               </div>
             </div>
-          </Reveal>
+          </MotionReveal>
         </div>
-      </Section>
+      </SectionBlock>
 
-      <Section className="py-14 md:py-18">
-        <Reveal>
-          <SectionHeading
-            eyebrow="FAQs"
-            title={`Questions about ${service.title}`}
-            description="Clear answers on setup, ownership, integrations, and rollout expectations."
-          />
-          <div className="mt-8">
-            <FaqAccordion items={service.faqs} />
-          </div>
-        </Reveal>
-      </Section>
-
-      <Section className="pt-0 pb-20">
-        <div className="rounded-3xl border border-slate-800 bg-slate-900/35 p-8 md:p-10">
-          <p className="text-xs font-semibold tracking-[0.16em] text-cyan-300 uppercase">Internal links</p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white">
-            Keep exploring this service journey
-          </h2>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Button asChild className="bg-cyan-300 text-slate-950 hover:bg-cyan-200">
-              <Link href="/contact">Talk to our team</Link>
-            </Button>
-            <Button asChild variant="outline" className="border-slate-700 bg-slate-900/35 text-slate-100 hover:bg-slate-800">
-              <Link href="/book">Book strategy session</Link>
-            </Button>
-            <Button asChild variant="ghost" className="text-cyan-300 hover:bg-slate-800/50 hover:text-cyan-200">
-              <Link href="/case-studies">See more outcomes</Link>
-            </Button>
-          </div>
+      <SectionBlock className="pt-5">
+        <MotionReveal className="max-w-4xl">
+          <p className="text-xs font-semibold tracking-[0.2em] text-cyan-300 uppercase">What we implement</p>
+          <h2 className="mt-3 text-3xl font-semibold text-white md:text-4xl">Done-for-you build checklist</h2>
+        </MotionReveal>
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          {service.deliverables.map((item, index) => (
+            <MotionReveal key={item} delay={index * 0.05}>
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/45 p-5">
+                <p className="text-sm text-slate-200">{item}</p>
+              </div>
+            </MotionReveal>
+          ))}
         </div>
-      </Section>
+      </SectionBlock>
+
+      <SectionBlock>
+        <MotionReveal className="max-w-4xl">
+          <p className="text-xs font-semibold tracking-[0.2em] text-cyan-300 uppercase">How it works</p>
+          <h2 className="mt-3 text-3xl font-semibold text-white md:text-4xl">From setup to measurable improvement</h2>
+        </MotionReveal>
+        <div className="mt-6 grid gap-4 md:grid-cols-4">
+          {[
+            "Business context and conversion audit",
+            "Core implementation sprint",
+            "Automation + CRM handoff",
+            "30-day optimisation cycle",
+          ].map((step, index) => (
+            <MotionReveal key={step} delay={index * 0.06}>
+              <div className="h-full rounded-2xl border border-slate-800 bg-slate-900/45 p-5">
+                <p className="text-xs text-cyan-300">Step {index + 1}</p>
+                <p className="mt-2 text-sm text-slate-300">{step}</p>
+              </div>
+            </MotionReveal>
+          ))}
+        </div>
+      </SectionBlock>
+
+      <SectionBlock>
+        <MotionReveal className="max-w-4xl">
+          <p className="text-xs font-semibold tracking-[0.2em] text-cyan-300 uppercase">Tools included</p>
+          <h2 className="mt-3 text-3xl font-semibold text-white md:text-4xl">System components inside this service</h2>
+        </MotionReveal>
+        <div className="mt-6 grid gap-4 md:grid-cols-3">
+          {toolCards.map((item, index) => (
+            <MotionReveal key={item.title} delay={index * 0.05}>
+              <div className="h-full rounded-2xl border border-slate-800 bg-slate-900/45 p-5">
+                <item.icon className="size-5 text-cyan-300" />
+                <h3 className="mt-3 text-lg font-semibold text-white">{item.title}</h3>
+                <p className="mt-2 text-sm text-slate-300">{item.description}</p>
+              </div>
+            </MotionReveal>
+          ))}
+        </div>
+      </SectionBlock>
+
+      <SectionBlock>
+        <div className="grid gap-4 lg:grid-cols-3">
+          <FunnelDiagram />
+          <AutomationFlowDiagram />
+          <KPICharts />
+        </div>
+      </SectionBlock>
+
+      {relatedCaseStudy ? (
+        <SectionBlock>
+          <MotionReveal>
+            <div className="grid gap-6 rounded-2xl border border-slate-800 bg-slate-900/45 p-6 lg:grid-cols-[0.6fr_1.4fr]">
+              <div className="relative overflow-hidden rounded-xl border border-slate-800">
+                <ImageOrPlaceholder src={relatedCaseStudy.coverImage} alt={relatedCaseStudy.title} label={relatedCaseStudy.clientName} className="aspect-square h-full w-full" sizes="(min-width: 1024px) 25vw, 100vw" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold tracking-[0.14em] text-cyan-300 uppercase">Case study spotlight</p>
+                <h3 className="mt-2 text-2xl font-semibold text-white">{relatedCaseStudy.title}</h3>
+                <p className="mt-3 text-sm text-slate-300">{relatedCaseStudy.snapshot}</p>
+                <p className="mt-3 text-sm text-slate-200">Result: {relatedCaseStudy.outcomes[0]?.label} {relatedCaseStudy.outcomes[0]?.value}</p>
+                <Button asChild variant="outline" className="mt-5 border-slate-700 bg-slate-900/45 text-slate-100 hover:bg-slate-800">
+                  <Link href={`/case-studies/${relatedCaseStudy.slug}`}>
+                    Read full case study
+                    <ArrowRight className="size-4" />
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </MotionReveal>
+        </SectionBlock>
+      ) : null}
+
+      <SectionBlock>
+        <DeepSeoContent topic={`${service.title} deployment playbook`} audience="UK SME operators seeking measurable outcomes" image={service.image} />
+      </SectionBlock>
+
+      <SectionBlock>
+        <MotionReveal>
+          <div className="rounded-2xl border border-cyan-500/30 bg-[linear-gradient(150deg,rgba(34,211,238,0.14),rgba(15,23,42,0.92))] p-7">
+            <p className="text-xs font-semibold tracking-[0.16em] text-cyan-300 uppercase">Pricing</p>
+            <h2 className="mt-2 text-3xl font-semibold text-white">Start this service from {service.entryPrice}</h2>
+            <p className="mt-3 text-sm text-slate-200">Need exact scope and timeline? We will map a practical rollout based on your current stack.</p>
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+              <PrimaryCTA label="Get a Growth Plan" />
+              <Button asChild variant="outline" size="lg" className="border-slate-700 bg-slate-900/45 text-slate-100 hover:bg-slate-800">
+                <Link href="/pricing">View pricing tiers</Link>
+              </Button>
+            </div>
+          </div>
+        </MotionReveal>
+      </SectionBlock>
+
+      <SectionBlock>
+        <MotionReveal className="max-w-4xl">
+          <p className="text-xs font-semibold tracking-[0.2em] text-cyan-300 uppercase">FAQ</p>
+          <h2 className="mt-3 text-3xl font-semibold text-white md:text-4xl">Service questions</h2>
+        </MotionReveal>
+        <div className="mt-8">
+          <FAQ items={faqs} />
+        </div>
+      </SectionBlock>
+
+      <SectionBlock className="pt-2 pb-20">
+        <FinalCTA title={`Want ${service.title} live this month?`} description="Tell us your current setup and we will provide timeline, deliverables, and measurable upside before we start." />
+      </SectionBlock>
     </>
   );
 }

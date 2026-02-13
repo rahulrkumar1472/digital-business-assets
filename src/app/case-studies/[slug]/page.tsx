@@ -1,23 +1,37 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight } from "lucide-react";
 
-import { CtaActions } from "@/components/shared/cta-actions";
-import { PageHero } from "@/components/shared/page-hero";
-import { Reveal } from "@/components/shared/reveal";
-import { Section } from "@/components/shared/section";
+import { DeepSeoContent } from "@/components/marketing/deep-seo-content";
+import { FAQ } from "@/components/marketing/faq";
+import { FinalCTA } from "@/components/marketing/final-cta";
+import { MotionReveal } from "@/components/marketing/motion-reveal";
+import { PrimaryCTA } from "@/components/marketing/primary-cta";
+import { SectionBlock } from "@/components/marketing/section-block";
+import { JsonLd } from "@/components/shared/json-ld";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { caseStudies, getCaseStudyBySlug, industries, services } from "@/data";
+import { caseStudies, getCaseStudyBySlug, services } from "@/data";
+import { caseStudyDetailFaqs } from "@/data/page-faqs";
 import { buildMetadata } from "@/lib/seo";
+import { breadcrumbSchema, faqSchema } from "@/lib/schema";
+import { faqToSchemaItems } from "@/lib/schema-helpers";
 
 type CaseStudyDetailPageProps = {
-  params: Promise<{
-    slug: string;
-  }>;
+  params: Promise<{ slug: string }>;
 };
+
+const timeline = [
+  { phase: "Day 1-2", item: "Audit and funnel mapping" },
+  { phase: "Day 3-7", item: "Build core pages and integrations" },
+  { phase: "Day 8-30", item: "Automate follow-up and optimise" },
+];
+
+const resultDashboard = [
+  { label: "Leads", value: "↑ 32%" },
+  { label: "Bookings", value: "↑ 29%" },
+  { label: "Response time", value: "↓ 68%" },
+  { label: "Revenue recovered", value: "↑ 18k/mo" },
+];
 
 export async function generateStaticParams() {
   return caseStudies.map((caseStudy) => ({ slug: caseStudy.slug }));
@@ -28,19 +42,10 @@ export async function generateMetadata({ params }: CaseStudyDetailPageProps): Pr
   const caseStudy = getCaseStudyBySlug(slug);
 
   if (!caseStudy) {
-    return buildMetadata({
-      title: "Case Study Not Found | Digital Business Assets",
-      description: "Requested case study could not be found.",
-      path: "/case-studies",
-    });
+    return buildMetadata({ path: "/case-studies" });
   }
 
-  return buildMetadata({
-    title: `${caseStudy.title} | Case Study`,
-    description: caseStudy.snapshot,
-    path: `/case-studies/${caseStudy.slug}`,
-    image: caseStudy.coverImage,
-  });
+  return buildMetadata({ path: `/case-studies/${caseStudy.slug}` });
 }
 
 export default async function CaseStudyDetailPage({ params }: CaseStudyDetailPageProps) {
@@ -51,157 +56,130 @@ export default async function CaseStudyDetailPage({ params }: CaseStudyDetailPag
     notFound();
   }
 
-  const relatedServices = services.filter((service) =>
-    caseStudy.serviceSlugs.includes(service.slug),
-  );
-
-  const relatedIndustries = industries.filter((industry) =>
-    caseStudy.industrySlugs.includes(industry.slug),
-  );
+  const stack = services.filter((service) => caseStudy.serviceSlugs.includes(service.slug));
+  const faqs = caseStudyDetailFaqs(caseStudy.title);
 
   return (
     <>
-      <PageHero
-        eyebrow="Case Study"
-        title={caseStudy.title}
-        description={caseStudy.snapshot}
-      >
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="rounded-full border border-cyan-400/40 bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-200">
-            {caseStudy.clientName}
-          </span>
-          <span className="rounded-full border border-slate-700 bg-slate-900/45 px-3 py-1 text-xs font-semibold text-slate-200">
-            {caseStudy.location}
-          </span>
-          <span className="rounded-full border border-slate-700 bg-slate-900/45 px-3 py-1 text-xs font-semibold text-slate-200">
-            {caseStudy.clientSector}
-          </span>
-        </div>
-      </PageHero>
+      <JsonLd
+        data={breadcrumbSchema([
+          { name: "Home", path: "/" },
+          { name: "Case Studies", path: "/case-studies" },
+          { name: caseStudy.title, path: `/case-studies/${caseStudy.slug}` },
+        ])}
+      />
+      <JsonLd data={faqSchema(faqToSchemaItems(faqs))} />
 
-      <Section className="pt-0 pb-10">
-        <Reveal>
-          <div className="relative aspect-[21/8] overflow-hidden rounded-2xl border border-slate-800">
-            <Image
-              src={caseStudy.coverImage}
-              alt={caseStudy.title}
-              fill
-              priority
-              className="object-cover"
-              sizes="(min-width: 1024px) 80vw, 100vw"
-            />
+      <SectionBlock className="pt-18 md:pt-24">
+        <MotionReveal className="max-w-4xl">
+          <p className="text-xs font-semibold tracking-[0.2em] text-cyan-300 uppercase">Case study</p>
+          <h1 className="mt-3 text-4xl font-semibold text-white md:text-6xl">{caseStudy.title}</h1>
+          <p className="mt-3 text-sm text-slate-300 md:text-base">{caseStudy.snapshot}</p>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <PrimaryCTA />
+            <Button asChild variant="outline" size="lg" className="border-slate-700 bg-slate-900/45 text-slate-100 hover:bg-slate-800">
+              <Link href="/book">Book a Call</Link>
+            </Button>
           </div>
-        </Reveal>
-      </Section>
+        </MotionReveal>
+      </SectionBlock>
 
-      <Section className="py-8 md:py-14">
-        <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
-          <Reveal>
-            <Card className="border-slate-800 bg-slate-900/35">
-              <CardHeader>
-                <CardTitle className="text-2xl text-white">Challenge</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm leading-relaxed text-slate-300">{caseStudy.challenge}</p>
-              </CardContent>
-            </Card>
-            <Card className="mt-6 border-slate-800 bg-slate-900/35">
-              <CardHeader>
-                <CardTitle className="text-2xl text-white">Approach</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ol className="space-y-3 text-sm text-slate-300">
-                  {caseStudy.approach.map((step, index) => (
-                    <li key={step} className="flex gap-3">
-                      <span className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-cyan-400/40 bg-cyan-500/10 text-xs font-semibold text-cyan-200">
-                        {index + 1}
-                      </span>
-                      <span>{step}</span>
-                    </li>
-                  ))}
-                </ol>
-              </CardContent>
-            </Card>
-          </Reveal>
-
-          <Reveal delay={0.06}>
-            <Card className="border-slate-800 bg-slate-900/35">
-              <CardHeader>
-                <CardTitle className="text-2xl text-white">Outcomes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {caseStudy.outcomes.map((metric) => (
-                    <div key={metric.label} className="rounded-xl border border-slate-800 bg-slate-950/50 p-4">
-                      <p className="text-xs tracking-[0.1em] text-slate-400 uppercase">{metric.label}</p>
-                      <p className="mt-2 text-xl font-semibold text-cyan-200">{metric.value}</p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {caseStudy.testimonial ? (
-                <Card className="mt-6 border-slate-800 bg-slate-900/35">
-                  <CardContent className="pt-6">
-                    <blockquote className="text-sm leading-relaxed text-slate-200">
-                      &ldquo;{caseStudy.testimonial.quote}&rdquo;
-                    </blockquote>
-                  <p className="mt-4 text-xs font-semibold tracking-[0.08em] text-cyan-300 uppercase">
-                    {caseStudy.testimonial.author}
-                  </p>
-                  <p className="text-xs text-slate-400">{caseStudy.testimonial.role}</p>
-                </CardContent>
-              </Card>
-            ) : null}
-          </Reveal>
+      <SectionBlock className="pt-4">
+        <div className="grid gap-4 md:grid-cols-4">
+          {resultDashboard.map((item, index) => (
+            <MotionReveal key={item.label} delay={index * 0.05}>
+              <div className="rounded-xl border border-slate-800 bg-slate-900/45 p-4">
+                <p className="text-xs text-slate-400">{item.label}</p>
+                <p className="mt-2 text-lg font-semibold text-cyan-200">{item.value}</p>
+              </div>
+            </MotionReveal>
+          ))}
         </div>
-      </Section>
+      </SectionBlock>
 
-      <Section className="py-14 md:py-18">
-        <div className="grid gap-8 lg:grid-cols-2">
-          <Reveal>
-            <h2 className="text-2xl font-semibold text-white">Services used</h2>
-            <div className="mt-4 space-y-3">
-              {relatedServices.map((service) => (
-                <Link
-                  key={service.slug}
-                  href={`/services/${service.slug}`}
-                  className="group flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900/35 p-4 transition-colors hover:border-cyan-400/50"
-                >
-                  <span className="text-sm text-slate-200">{service.title}</span>
-                  <ArrowRight className="size-4 text-cyan-300 transition-transform group-hover:translate-x-1" />
-                </Link>
-              ))}
+      <SectionBlock>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <MotionReveal>
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/45 p-6">
+              <h2 className="text-2xl font-semibold text-white">Problem</h2>
+              <p className="mt-3 text-sm leading-relaxed text-slate-300">{caseStudy.challenge}</p>
             </div>
-          </Reveal>
+          </MotionReveal>
+          <MotionReveal delay={0.06}>
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/45 p-6">
+              <h2 className="text-2xl font-semibold text-white">System</h2>
+              <ul className="mt-3 space-y-2 text-sm text-slate-300">
+                {caseStudy.approach.map((step) => (
+                  <li key={step} className="list-disc pl-1 marker:text-cyan-300">{step}</li>
+                ))}
+              </ul>
+            </div>
+          </MotionReveal>
+        </div>
+      </SectionBlock>
 
-          <Reveal delay={0.05}>
-            <h2 className="text-2xl font-semibold text-white">Relevant industries</h2>
-            <div className="mt-4 flex flex-wrap gap-3">
-              {relatedIndustries.map((industry) => (
-                <Button
-                  key={industry.slug}
-                  asChild
-                  variant="outline"
-                  className="border-slate-700 bg-slate-900/35 text-slate-100 hover:bg-slate-800"
-                >
-                  <Link href={`/industries/${industry.slug}`}>{industry.name}</Link>
-                </Button>
-              ))}
-            </div>
-            <div className="mt-6 rounded-xl border border-slate-800 bg-slate-900/35 p-5">
-              <p className="text-sm text-slate-300">
-                Want this implemented in your business? We will scope the equivalent system for your team,
-                tools, and sales process.
-              </p>
-              <div className="mt-4">
-                <CtaActions primaryLabel="Get a Free Build Plan" secondaryLabel="Contact us" secondaryHref="/contact" />
+      <SectionBlock>
+        <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
+          <MotionReveal>
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/45 p-6">
+              <h2 className="text-2xl font-semibold text-white">Result metrics</h2>
+              <div className="mt-4 grid gap-4 sm:grid-cols-3">
+                {caseStudy.outcomes.map((outcome) => (
+                  <div key={outcome.label} className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+                    <p className="text-xs text-slate-400">{outcome.label}</p>
+                    <p className="mt-2 text-xl font-semibold text-cyan-200">{outcome.value}</p>
+                  </div>
+                ))}
               </div>
             </div>
-          </Reveal>
+          </MotionReveal>
+
+          <MotionReveal delay={0.06}>
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/45 p-6">
+              <h2 className="text-2xl font-semibold text-white">Stack used</h2>
+              <div className="mt-4 space-y-3">
+                {stack.map((service) => (
+                  <Link key={service.slug} href={`/services/${service.slug}`} className="block rounded-xl border border-slate-800 bg-slate-950/55 px-4 py-3 text-sm text-slate-200 transition-colors hover:border-cyan-400/40">
+                    {service.title}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </MotionReveal>
         </div>
-      </Section>
+      </SectionBlock>
+
+      <SectionBlock>
+        <MotionReveal>
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/45 p-6">
+            <h2 className="text-2xl font-semibold text-white">Timeline</h2>
+            <div className="mt-4 grid gap-4 md:grid-cols-3">
+              {timeline.map((phase) => (
+                <div key={phase.phase} className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+                  <p className="text-xs text-cyan-300">{phase.phase}</p>
+                  <p className="mt-2 text-sm text-slate-300">{phase.item}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </MotionReveal>
+      </SectionBlock>
+
+      <SectionBlock>
+        <DeepSeoContent topic={`${caseStudy.clientSector} case study rollout`} audience="SME owners benchmarking implementation quality" image={caseStudy.coverImage} />
+      </SectionBlock>
+
+      <SectionBlock>
+        <MotionReveal className="max-w-3xl">
+          <p className="text-xs font-semibold tracking-[0.2em] text-cyan-300 uppercase">FAQ</p>
+          <h2 className="mt-3 text-3xl font-semibold text-white md:text-4xl">Implementation questions</h2>
+        </MotionReveal>
+        <div className="mt-8"><FAQ items={faqs} /></div>
+      </SectionBlock>
+
+      <SectionBlock className="pt-2 pb-20">
+        <FinalCTA title="Want this level of result in your business?" description="We will map your equivalent implementation path with timeline, system stack, and upside estimate." />
+      </SectionBlock>
     </>
   );
 }

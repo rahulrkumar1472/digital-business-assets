@@ -1,0 +1,14 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='675' viewBox='0 0 1200 675'>
+  <rect width='1200' height='675' fill='#020617'/>
+  <text x='60' y='110' fill='#e2e8f0' font-size='44' font-family='Arial'>Automation + CRM Flow</text>
+  <rect x='80' y='220' width='180' height='90' rx='14' fill='#111827' stroke='#22d3ee'/>
+  <rect x='320' y='220' width='180' height='90' rx='14' fill='#111827' stroke='#22d3ee'/>
+  <rect x='560' y='220' width='180' height='90' rx='14' fill='#111827' stroke='#22d3ee'/>
+  <rect x='800' y='220' width='180' height='90' rx='14' fill='#111827' stroke='#22d3ee'/>
+  <rect x='1040' y='220' width='120' height='90' rx='14' fill='#111827' stroke='#22d3ee'/>
+  <text x='115' y='275' fill='#cbd5e1' font-size='20' font-family='Arial'>Capture</text>
+  <text x='360' y='275' fill='#cbd5e1' font-size='20' font-family='Arial'>Qualify</text>
+  <text x='607' y='275' fill='#cbd5e1' font-size='20' font-family='Arial'>Book</text>
+  <text x='838' y='275' fill='#cbd5e1' font-size='20' font-family='Arial'>Remind</text>
+  <text x='1065' y='275' fill='#cbd5e1' font-size='20' font-family='Arial'>Win</text>
+</svg>

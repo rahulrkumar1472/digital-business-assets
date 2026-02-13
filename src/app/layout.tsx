@@ -1,11 +1,14 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Manrope, Space_Grotesk } from "next/font/google";
 
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import { ChatWidget } from "@/components/chat/chat-widget";
+import { GuaranteeOfferPopup } from "@/components/marketing/guarantee-offer-popup";
+import { PremiumBackground } from "@/components/marketing/premium-background";
 import { JsonLd } from "@/components/shared/json-ld";
-import { organizationSchema, websiteSchema } from "@/lib/schema";
 import { buildMetadata } from "@/lib/seo";
+import { organizationSchema, websiteSchema } from "@/lib/schema";
 import "./globals.css";
 
 const bodyFont = Manrope({
@@ -18,12 +21,14 @@ const headingFont = Space_Grotesk({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = buildMetadata({
-  title: "Digital Business Assets | AI-First Growth Systems for UK SMEs",
-  description:
-    "Digital Business Assets helps UK SMEs launch conversion-focused websites, SEO/AEO, chatbots, and automation systems from £99/month.",
-  path: "/",
-});
+export const metadata: Metadata = {
+  ...buildMetadata({ path: "/" }),
+};
+
+export const viewport: Viewport = {
+  themeColor: "#05060a",
+  colorScheme: "dark",
+};
 
 export default function RootLayout({
   children,
@@ -31,34 +36,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en-GB" suppressHydrationWarning>
+    <html lang="en-GB" className="dark" suppressHydrationWarning style={{ colorScheme: "dark" }}>
       <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  var saved = localStorage.getItem('theme');
-                  if (saved === 'light') {
-                    document.documentElement.classList.remove('dark');
-                  } else {
-                    document.documentElement.classList.add('dark');
-                  }
-                } catch (e) {
-                  document.documentElement.classList.add('dark');
-                }
-              })();
-            `,
-          }}
-        />
+        <meta name="color-scheme" content="dark" />
+        <meta name="theme-color" content="#05060a" />
       </head>
-      <body className={`${bodyFont.variable} ${headingFont.variable} bg-background text-foreground antialiased`}>
+      <body className={`${bodyFont.variable} ${headingFont.variable} bg-[#05060a] text-[#e7e7ea] antialiased`}>
         <JsonLd data={organizationSchema()} />
         <JsonLd data={websiteSchema()} />
         <div className="relative min-h-screen overflow-x-hidden">
+          <PremiumBackground />
           <SiteHeader />
           <main>{children}</main>
           <SiteFooter />
+          <GuaranteeOfferPopup />
+          <ChatWidget />
         </div>
       </body>
     </html>
