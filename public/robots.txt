@@ -3,7 +3,7 @@ User-agent: *
 Allow: /
 
 # Host
-Host: https://digitalbusinessassets.com
+Host: https://digitalbusinessassets.co.uk
 
 # Sitemaps
-Sitemap: https://digitalbusinessassets.com/sitemap.xml
+Sitemap: https://digitalbusinessassets.co.uk/sitemap.xml
