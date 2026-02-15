@@ -13,6 +13,7 @@ type AuditUrlLaunchFormProps = {
   submitLabel?: string;
   showAdvancedToggle?: boolean;
   destination?: "results" | "start";
+  showCompetitorInputs?: boolean;
 };
 
 function normalizeUrl(value: string) {
@@ -23,17 +24,38 @@ function normalizeUrl(value: string) {
   return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
 }
 
+function normalizeDomain(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "";
+  }
+
+  const candidate = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    const parsed = new URL(candidate);
+    return parsed.hostname.replace(/^www\./i, "").toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
 export function AuditUrlLaunchForm({
   defaultIndustry = "service",
   defaultGoal = "leads",
   submitLabel = "Run free growth audit",
   showAdvancedToggle = false,
   destination = "results",
+  showCompetitorInputs = false,
 }: AuditUrlLaunchFormProps) {
   const router = useRouter();
   const [url, setUrl] = useState("");
   const [industry, setIndustry] = useState(defaultIndustry);
   const [goal, setGoal] = useState(defaultGoal);
+  const [competitors, setCompetitors] = useState([
+    "",
+    "",
+    "",
+  ]);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,11 +72,31 @@ export function AuditUrlLaunchForm({
 
     setSubmitting(true);
 
-    const query = new URLSearchParams({
+    const competitorDomains = competitors
+      .map((item) => ({ raw: item, normalized: normalizeDomain(item) }))
+      .filter((item) => item.raw.trim().length > 0);
+
+    const invalidCompetitor = competitorDomains.find((item) => !item.normalized);
+    if (showCompetitorInputs && invalidCompetitor) {
+      setSubmitting(false);
+      setError("Please enter valid competitor domains or leave the field blank.");
+      return;
+    }
+
+    const queryParams = new URLSearchParams({
       url: normalized,
       industry: industry || "service",
       goal: goal || "leads",
-    }).toString();
+    });
+
+    const uniqueCompetitors = Array.from(
+      new Set(competitorDomains.map((item) => item.normalized).filter(Boolean)),
+    ).slice(0, 3);
+    if (uniqueCompetitors.length) {
+      queryParams.set("competitors", uniqueCompetitors.join(","));
+    }
+
+    const query = queryParams.toString();
 
     if (destination === "start") {
       router.push(`/tools/website-audit/start?${query}`);
@@ -122,6 +164,34 @@ export function AuditUrlLaunchForm({
                   <option value="sales">Sales</option>
                 </select>
               </div>
+
+              {showCompetitorInputs ? (
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-[11px] font-semibold tracking-[0.12em] text-slate-300 uppercase">
+                    Competitors (optional, up to 3)
+                  </label>
+                  <div className="grid gap-2 md:grid-cols-3">
+                    {competitors.map((competitor, index) => (
+                      <Input
+                        key={`competitor-${index + 1}`}
+                        value={competitor}
+                        onChange={(event) =>
+                          setCompetitors((previous) =>
+                            previous.map((item, itemIndex) =>
+                              itemIndex === index ? event.target.value : item,
+                            ),
+                          )
+                        }
+                        placeholder={`competitor${index + 1}.co.uk`}
+                        className="h-10 border-slate-700 bg-slate-900 text-sm text-slate-100"
+                      />
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    Add competitor domains only if you want side-by-side benchmarking.
+                  </p>
+                </div>
+              ) : null}
             </div>
           ) : null}
         </div>

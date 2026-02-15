@@ -49,6 +49,10 @@ export function LeadPopup() {
   }, [searchParams]);
 
   useEffect(() => {
+    if (pathname.startsWith("/tools") || pathname.startsWith("/growth-simulator")) {
+      return;
+    }
+
     const doNotShow = window.localStorage.getItem(doNotShowKey) === "1";
     if (doNotShow) {
       return;
@@ -81,7 +85,7 @@ export function LeadPopup() {
     return () => {
       window.clearTimeout(timer);
     };
-  }, []);
+  }, [pathname]);
 
   const close = () => setOpen(false);
 

@@ -11,13 +11,15 @@ import { Button } from "@/components/ui/button";
 import { absoluteUrl } from "@/lib/seo";
 import { siteConfig } from "@/lib/site";
 import { softwareApplicationSchema } from "@/lib/schema";
-import { fetchLiveAuditSignal } from "@/lib/scans/growth-audit-report";
+import { parseCompetitorList, runWebsiteGrowthAudit } from "@/lib/scans/audit-engine";
 
 type WebsiteAuditResultsQueryPageProps = {
   searchParams: Promise<{
     url?: string;
     industry?: string;
     goal?: string;
+    competitors?: string;
+    businessName?: string;
   }>;
 };
 
@@ -50,9 +52,17 @@ export const metadata: Metadata = {
 export default async function WebsiteAuditResultsQueryPage({ searchParams }: WebsiteAuditResultsQueryPageProps) {
   const params = await searchParams;
   const websiteUrl = params.url?.trim() || "https://example.co.uk";
-  const industry = params.industry?.trim() || "General";
-  const goal = params.goal?.trim() || "All of it";
-  const liveSignal = await fetchLiveAuditSignal(websiteUrl);
+  const industry = params.industry?.trim() || "service";
+  const goal = params.goal?.trim() || "leads";
+  const businessName = params.businessName?.trim() || undefined;
+  const competitors = parseCompetitorList(params.competitors);
+  const audit = await runWebsiteGrowthAudit({
+    url: websiteUrl,
+    industry,
+    goal,
+    competitors,
+    businessName,
+  });
 
   return (
     <>
@@ -110,7 +120,7 @@ export default async function WebsiteAuditResultsQueryPage({ searchParams }: Web
       </SectionBlock>
 
       <SectionBlock className="pt-4 pb-20">
-        <WebsiteGrowthReport url={websiteUrl} industry={industry} goal={goal} liveSignal={liveSignal} />
+        <WebsiteGrowthReport audit={audit} />
       </SectionBlock>
     </>
   );

@@ -1,13 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ArrowUpRight, Sparkles } from "lucide-react";
 
 import { useFunnelTrack } from "@/components/funnel/funnel-provider";
 import { trackEvent } from "@/lib/analytics";
 
 export function MobileStickyFooter() {
+  const pathname = usePathname();
   const { track } = useFunnelTrack();
+  const hiddenInToolFlow =
+    pathname.startsWith("/tools/website-audit") || pathname.startsWith("/growth-simulator");
+  if (hiddenInToolFlow) {
+    return null;
+  }
+
   const secondaryHref =
     track === "track2" ? "/tools/website-audit/start" : "/services/website-starter-build";
   const secondaryLabel = track === "track2" ? "Run Website Audit" : "See Starter Build";
@@ -47,4 +55,3 @@ export function MobileStickyFooter() {
     </div>
   );
 }
-

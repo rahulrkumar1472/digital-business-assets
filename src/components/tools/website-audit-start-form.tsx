@@ -15,9 +15,13 @@ export function WebsiteAuditStartForm() {
         defaultGoal="leads"
         submitLabel="Generate report"
         showAdvancedToggle
+        showCompetitorInputs
       />
 
-      <p className="text-xs text-slate-400">If you skip Advanced, we default to industry: service and goal: leads.</p>
+      <p className="text-xs text-slate-400">
+        If you skip Advanced, we default to industry: service and goal: leads. Competitor benchmarking runs only when
+        you provide competitor domains.
+      </p>
     </div>
   );
 }

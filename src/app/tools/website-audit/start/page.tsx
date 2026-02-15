@@ -3,7 +3,7 @@ import { Clock3, FileDown, Gauge } from "lucide-react";
 import { InContextPricing } from "@/components/marketing/in-context-pricing";
 import { MotionReveal } from "@/components/marketing/motion-reveal";
 import { SectionBlock } from "@/components/marketing/section-block";
-import { WebsiteAuditStartForm } from "@/components/tools/website-audit-start-form";
+import { WebsiteAuditOnboarding } from "@/components/tools/website-audit-onboarding";
 import { buildMetadata } from "@/lib/seo";
 
 export const metadata = buildMetadata({ path: "/tools/website-audit/start" });
@@ -60,7 +60,7 @@ export default function WebsiteAuditStartPage() {
           </MotionReveal>
 
           <MotionReveal delay={0.05}>
-            <WebsiteAuditStartForm />
+            <WebsiteAuditOnboarding />
           </MotionReveal>
         </div>
       </SectionBlock>
