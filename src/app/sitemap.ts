@@ -21,6 +21,7 @@ const staticRoutes = [
   "/pricing",
   "/login",
   "/signup",
+  "/portal",
   "/bespoke-plan",
   "/thanks",
   "/app",

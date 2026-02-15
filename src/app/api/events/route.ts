@@ -13,6 +13,9 @@ type EventPayload = {
     | "simulator_completed"
     | "simulator_action_clicked"
     | "simulator_bespoke_plan_clicked"
+    | "ai_follow_up_generated"
+    | "lead_scored"
+    | "auto_followup_triggered"
     | "book_call_clicked";
   payload?: Record<string, unknown>;
   leadId?: string;
@@ -30,6 +33,9 @@ const allowedTypes = new Set([
   "simulator_completed",
   "simulator_action_clicked",
   "simulator_bespoke_plan_clicked",
+  "ai_follow_up_generated",
+  "lead_scored",
+  "auto_followup_triggered",
   "book_call_clicked",
 ]);
 

@@ -22,6 +22,9 @@ type LogEventInput = {
     | "simulator_completed"
     | "simulator_action_clicked"
     | "simulator_bespoke_plan_clicked"
+    | "ai_follow_up_generated"
+    | "lead_scored"
+    | "auto_followup_triggered"
     | "book_call_clicked";
   payload?: Record<string, unknown>;
   leadId?: string;
@@ -65,27 +68,88 @@ export async function upsertAuditRun(input: UpsertAuditRunInput) {
       contentClarity: input.audit.pillars.contentClarity,
       trustAuthority: input.audit.pillars.trustAuthority,
     };
+    const snapshotJson = {
+      generatedAt: input.audit.generatedAt,
+      url: input.audit.url,
+      industry: input.audit.industry,
+      goal: input.audit.goal,
+      topFindings: input.audit.topFindings.slice(0, 10),
+      recommendedModules: input.audit.recommendedModules.slice(0, 6),
+      checks: input.audit.checks.slice(0, 40),
+      narrative: input.audit.narrative,
+      pageExperience: input.audit.pageExperience,
+      dashboardScores: input.audit.dashboardScores,
+      businessSnapshot: input.audit.businessSnapshot,
+      contentClarity: {
+        score: input.audit.contentClarity.score,
+        diagnosticSummary: input.audit.contentClarity.diagnosticSummary,
+        title: input.audit.contentClarity.title,
+        h1: input.audit.contentClarity.h1,
+      },
+    };
+
+    const resolvedLeadId = input.leadId || existing?.leadId || null;
 
     if (existing) {
-      return prisma.auditRun.update({
+      const updated = await prisma.auditRun.update({
         where: { id: existing.id },
         data: {
           url: input.url,
-          leadId: input.leadId || existing.leadId,
+          leadId: resolvedLeadId,
           scoresJson: toJson(scoresJson),
+          snapshotJson: toJson(snapshotJson),
           updatedAt: now,
         },
       });
+      if (resolvedLeadId) {
+        await prisma.lead.update({
+          where: { id: resolvedLeadId },
+          data: { lastSeenAt: now },
+        });
+
+        try {
+          await prisma.auditSnapshot.create({
+            data: {
+              leadId: resolvedLeadId,
+              auditRunId: updated.id,
+              snapshotJson: toJson(snapshotJson) as Prisma.InputJsonValue,
+            },
+          });
+        } catch (snapshotError) {
+          console.warn("[audit-tracking] snapshot create failed (update)", snapshotError);
+        }
+      }
+      return updated;
     }
 
-    return prisma.auditRun.create({
+    const created = await prisma.auditRun.create({
       data: {
         url: input.url,
-        leadId: input.leadId || null,
+        leadId: resolvedLeadId,
         reportId: input.reportId,
         scoresJson: toJson(scoresJson) as Prisma.InputJsonValue,
+        snapshotJson: toJson(snapshotJson),
       },
     });
+    if (resolvedLeadId) {
+      await prisma.lead.update({
+        where: { id: resolvedLeadId },
+        data: { lastSeenAt: now },
+      });
+
+      try {
+        await prisma.auditSnapshot.create({
+          data: {
+            leadId: resolvedLeadId,
+            auditRunId: created.id,
+            snapshotJson: toJson(snapshotJson) as Prisma.InputJsonValue,
+          },
+        });
+      } catch (snapshotError) {
+        console.warn("[audit-tracking] snapshot create failed (create)", snapshotError);
+      }
+    }
+    return created;
   } catch (error) {
     console.error("[audit-tracking] upsert audit run failed", error);
     return null;
@@ -98,7 +162,7 @@ export async function logAuditEvent(input: LogEventInput) {
   }
 
   try {
-    return await prisma.event.create({
+    const event = await prisma.event.create({
       data: {
         type: input.type,
         payloadJson: toJson(input.payload),
@@ -107,6 +171,15 @@ export async function logAuditEvent(input: LogEventInput) {
         simulatorRunId: input.simulatorRunId || null,
       },
     });
+
+    if (input.leadId) {
+      await prisma.lead.update({
+        where: { id: input.leadId },
+        data: { lastSeenAt: event.createdAt },
+      });
+    }
+
+    return event;
   } catch (error) {
     console.error("[audit-tracking] log event failed", error);
     return null;

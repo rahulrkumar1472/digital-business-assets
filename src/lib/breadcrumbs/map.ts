@@ -101,6 +101,34 @@ export function getBreadcrumbItems(pathname: string): BreadcrumbItem[] {
     return items;
   }
 
+  if (segments[0] === "portal") {
+    items.push({ label: "Portal", href: "/portal" });
+    if (segments[1]) {
+      items.push({ label: "Dashboard" });
+    }
+    return items;
+  }
+
+  if (segments[0] === "admin") {
+    items.push({ label: "Lead Vault", href: "/admin" });
+    if (segments[1] === "leads") {
+      items.push({ label: "Leads", href: "/admin/leads" });
+      if (segments[2]) {
+        items.push({ label: "Lead Detail" });
+      }
+      return items;
+    }
+    if (segments[1] === "analytics") {
+      items.push({ label: "Analytics" });
+      return items;
+    }
+    if (segments[1] === "bookings") {
+      items.push({ label: "Bookings" });
+      return items;
+    }
+    return items;
+  }
+
   if (segments[0] === "case-studies") {
     items.push({ label: "Case Studies", href: "/case-studies" });
     if (segments[1]) {

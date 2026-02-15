@@ -87,6 +87,7 @@ export async function POST(request: Request) {
     const pagePath = trimSafe(body.pagePath, 240);
     const consentWeekly = typeof body.consentWeekly === "boolean" ? body.consentWeekly : undefined;
     const createdAt = new Date().toISOString();
+    const seenAt = new Date();
 
     if (email && !emailPattern.test(email)) {
       return NextResponse.json(
@@ -125,6 +126,7 @@ export async function POST(request: Request) {
             consentWeekly: typeof consentWeekly === "boolean" ? consentWeekly : existing.consentWeekly,
             auditReport: mergeAuditReport(existing.auditReport, body.auditReport, createdAt),
             reason: existing.reason || "All of it",
+            lastSeenAt: seenAt,
           },
         });
 
@@ -147,6 +149,7 @@ export async function POST(request: Request) {
         pagePath: pagePath || null,
         consentWeekly: consentWeekly ?? false,
         auditReport: mergeAuditReport(null, body.auditReport, createdAt),
+        lastSeenAt: seenAt,
       },
     });
 

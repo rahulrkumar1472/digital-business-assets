@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Copy, FileDown, Mail } from "lucide-react";
+import { Copy, FileDown, LayoutDashboard, Mail } from "lucide-react";
 
 import { MotionReveal } from "@/components/marketing/motion-reveal";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ type WebsiteGrowthReportProps = {
   audit: AuditResult;
 };
 
-type LeadAction = "email" | "pdf" | null;
+type LeadAction = "email" | "pdf" | "portal" | null;
 
 type LeadFormState = {
   name: string;
@@ -189,6 +189,7 @@ function ownerForCategory(category: AuditCheck["category"]) {
 }
 
 export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
+  const router = useRouter();
   const pathname = usePathname();
   const [toast, setToast] = useState<string | null>(null);
   const [leadModalOpen, setLeadModalOpen] = useState(false);
@@ -521,6 +522,21 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
     ],
   );
 
+  const requestPortalLink = useCallback(async (email: string) => {
+    const response = await fetch("/api/portal/request-link", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+
+    const payload = (await response.json()) as { ok?: boolean; token?: string; message?: string };
+    if (!response.ok || !payload.ok) {
+      throw new Error(payload.message || "Could not generate portal link.");
+    }
+
+    return payload.token || null;
+  }, []);
+
   useEffect(() => {
     const existingLead = requireLead();
     if (!existingLead || !existingLead.email || !emailIsValid(existingLead.email)) {
@@ -568,9 +584,20 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
     }
 
     try {
-      const savedLead = await persistLeadAndReport(payload, action === "email" ? "email_report" : "pdf_export");
+      const source =
+        action === "email" ? "email_report" : action === "pdf" ? "pdf_export" : "portal_link";
+      const savedLead = await persistLeadAndReport(payload, source);
       if (action === "email") {
         setToast("Report linked to your email. Delivery workflow is now ready.");
+        return;
+      }
+      if (action === "portal") {
+        const token = await requestPortalLink(payload.email.trim().toLowerCase());
+        if (!token) {
+          setToast("Portal link prepared. Check your latest dashboard request in admin.");
+          return;
+        }
+        router.push(`/portal/${token}`);
         return;
       }
       await logEvent("pdf_downloaded", {
@@ -579,7 +606,7 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
       });
       window.location.href = buildPdfHref(payload.businessName, savedLead.leadId);
     } catch {
-      setToast("Could not save lead details right now. Please try again.");
+      setToast(action === "portal" ? "Could not open dashboard right now. Please try again." : "Could not save lead details right now. Please try again.");
     }
   };
 
@@ -612,10 +639,19 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
 
     setLeadSubmitting(true);
     try {
-      const savedLead = await persistLeadAndReport(leadForm, pendingAction === "email" ? "email_report" : "pdf_export");
+      const source =
+        pendingAction === "email" ? "email_report" : pendingAction === "pdf" ? "pdf_export" : "portal_link";
+      const savedLead = await persistLeadAndReport(leadForm, source);
       setLeadModalOpen(false);
       if (pendingAction === "email") {
         setToast("Thanks. The report is linked to your contact details.");
+      } else if (pendingAction === "portal") {
+        const token = await requestPortalLink(leadForm.email.trim().toLowerCase());
+        if (token) {
+          router.push(`/portal/${token}`);
+        } else {
+          setToast("Portal link prepared. Please request again if needed.");
+        }
       } else {
         await logEvent("pdf_downloaded", {
           reportId,
@@ -826,6 +862,10 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
                   <Button size="sm" variant="outline" className="rounded-full border-slate-700 bg-slate-900/75 text-slate-100 hover:bg-slate-800" onClick={copyShareLink}>
                     <Copy className="size-3.5" />
                     Copy share link
+                  </Button>
+                  <Button size="sm" variant="outline" className="rounded-full border-slate-700 bg-slate-900/75 text-slate-100 hover:bg-slate-800" onClick={() => requireLeadForAction("portal") }>
+                    <LayoutDashboard className="size-3.5" />
+                    Open your dashboard
                   </Button>
                   <Button size="sm" variant="outline" className="rounded-full border-slate-700 bg-slate-900/75 text-slate-100 hover:bg-slate-800" onClick={() => requireLeadForAction("pdf") }>
                     <FileDown className="size-3.5" />
@@ -1323,7 +1363,11 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
                 Close
               </button>
             </div>
-            <p className="mt-1 text-xs text-slate-400">For PDF export we require name, business name, and email. Phone is optional.</p>
+            <p className="mt-1 text-xs text-slate-400">
+              {pendingAction === "pdf"
+                ? "For PDF export we require name, business name, and email. Phone is optional."
+                : "Enter your details so we can link this report to your private dashboard."}
+            </p>
 
             <form onSubmit={submitLeadGate} className="mt-4 space-y-3">
               <input value={leadForm.name} onChange={(event) => setLeadForm((previous) => ({ ...previous, name: event.target.value }))} className="h-10 w-full rounded-md border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100" placeholder="Your name" />
@@ -1335,7 +1379,13 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
                 Yes — send occasional practical growth updates.
               </label>
               <Button type="submit" className="w-full" disabled={leadSubmitting}>
-                {leadSubmitting ? "Saving..." : pendingAction === "pdf" ? "Save and continue to PDF" : "Save details"}
+                {leadSubmitting
+                  ? "Saving..."
+                  : pendingAction === "pdf"
+                    ? "Save and continue to PDF"
+                    : pendingAction === "portal"
+                      ? "Save and open dashboard"
+                      : "Save details"}
               </Button>
             </form>
           </div>

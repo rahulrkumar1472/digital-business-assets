@@ -115,11 +115,20 @@ export async function POST(request: Request) {
     let simulatorRunId: string | undefined;
     const leadId = trimSafe(body.leadId, 100) || undefined;
     const auditRunId = trimSafe(body.auditRunId, 100) || undefined;
+    let resolvedLeadId = leadId;
 
     if (isPrismaReady()) {
+      if (!resolvedLeadId && auditRunId) {
+        const auditRun = await prisma.auditRun.findUnique({
+          where: { id: auditRunId },
+          select: { leadId: true },
+        });
+        resolvedLeadId = auditRun?.leadId || undefined;
+      }
+
       const record = await prisma.simulatorRun.create({
         data: {
-          leadId: leadId || null,
+          leadId: resolvedLeadId || null,
           auditRunId: auditRunId || null,
           domain: inputs.domain || null,
           businessName: inputs.businessName || null,
@@ -142,6 +151,32 @@ export async function POST(request: Request) {
       });
 
       simulatorRunId = record.id;
+
+      if (resolvedLeadId) {
+        try {
+          await prisma.simulatorSnapshot.create({
+            data: {
+              leadId: resolvedLeadId,
+              simulatorRunId: record.id,
+              snapshotJson: toJson({
+                simulatorRunId: record.id,
+                createdAt: record.createdAt.toISOString(),
+                domain: inputs.domain || null,
+                businessName: inputs.businessName || null,
+                inputs,
+                outputs: output,
+              }),
+            },
+          });
+        } catch (snapshotError) {
+          console.warn("[api/simulator/run] snapshot create failed", snapshotError);
+        }
+
+        await prisma.lead.update({
+          where: { id: resolvedLeadId },
+          data: { lastSeenAt: new Date() },
+        });
+      }
     }
 
     return NextResponse.json({

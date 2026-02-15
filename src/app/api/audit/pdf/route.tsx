@@ -11,6 +11,7 @@ import {
   StyleSheet,
 } from "@react-pdf/renderer";
 
+import { createPortalSessionForLeadId } from "@/lib/portal/portal-session";
 import { parseCompetitorList, runWebsiteGrowthAudit } from "@/lib/scans/audit-engine";
 import { logAuditEvent } from "@/lib/scans/audit-tracking";
 import type { AuditResult, RAG } from "@/lib/scans/audit-types";
@@ -247,8 +248,9 @@ function buildAuditPdfDocument(options: {
   bespokeHref: string;
   rerunHref: string;
   bookHref: string;
+  dashboardHref: string;
 }) {
-  const { audit, businessName, generatedDate, bespokeHref, rerunHref, bookHref } = options;
+  const { audit, businessName, generatedDate, bespokeHref, rerunHref, bookHref, dashboardHref } = options;
   const topActions = audit.topFindings.slice(0, 3).map(topActionFromFinding);
   const stageWeak = weakestStage(audit);
 
@@ -568,6 +570,9 @@ function buildAuditPdfDocument(options: {
 
         <Text style={styles.sectionTitle}>Next steps</Text>
         <View style={styles.card}>
+          <Link style={styles.link} src={dashboardHref}>
+            Your dashboard link
+          </Link>
           <Link style={styles.link} src={`${siteConfig.url}/services`}>
             Explore all services
           </Link>
@@ -629,6 +634,13 @@ export async function GET(request: Request) {
     const bookHref = `${siteConfig.url}/book?source=audit-pdf&website=${encodeURIComponent(audit.url)}&industry=${encodeURIComponent(
       audit.industry || "service",
     )}`;
+    let dashboardHref = `${siteConfig.url}/portal`;
+    if (leadId) {
+      const portal = await createPortalSessionForLeadId(leadId);
+      if (portal?.url) {
+        dashboardHref = portal.url;
+      }
+    }
 
     const doc = buildAuditPdfDocument({
       audit,
@@ -637,6 +649,7 @@ export async function GET(request: Request) {
       bespokeHref,
       rerunHref,
       bookHref,
+      dashboardHref,
     });
 
     const buffer = await renderToBuffer(doc);

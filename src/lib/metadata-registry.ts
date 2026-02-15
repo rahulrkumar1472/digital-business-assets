@@ -210,6 +210,15 @@ const staticRoutes: RouteMetadataEntry[] = [
     image: "/media/dashboard-2.jpg",
   },
   {
+    path: "/portal",
+    title: toTitle("Client Portal Dashboard"),
+    description: toDescription(
+      "Access your saved growth dashboard with latest audit snapshots, simulator outputs, and next-step actions using a secure email link with 24-hour session access.",
+      "/portal",
+    ),
+    image: "/media/dashboard-2.jpg",
+  },
+  {
     path: "/thanks",
     title: toTitle("Bespoke Plan Submitted"),
     description: toDescription(
@@ -323,6 +332,33 @@ const staticRoutes: RouteMetadataEntry[] = [
     description: toDescription(
       "Configure Business OS operational settings for webhooks, report templates, lead routing defaults, and environment controls that support reliable long-term growth execution.",
       "/app/settings",
+    ),
+    image: "/media/dashboard-3.jpg",
+  },
+  {
+    path: "/admin",
+    title: toTitle("Lead Vault Admin"),
+    description: toDescription(
+      "Lead Vault admin overview for secure operator access, lead triage, audit intelligence, simulator outputs, and next-step orchestration across conversion workflows.",
+      "/admin",
+    ),
+    image: "/media/dashboard-2.jpg",
+  },
+  {
+    path: "/admin/leads",
+    title: toTitle("Lead Vault Leads"),
+    description: toDescription(
+      "Review captured leads with source, score context, intent tier, and operator actions, then jump to timeline details or generate follow-up messaging from one view.",
+      "/admin/leads",
+    ),
+    image: "/media/dashboard-2.jpg",
+  },
+  {
+    path: "/admin/analytics",
+    title: toTitle("Lead Vault Analytics"),
+    description: toDescription(
+      "Track lead velocity, audit completion, simulator conversion, module clicks, and funnel weaknesses so operators can prioritise high-impact growth interventions.",
+      "/admin/analytics",
     ),
     image: "/media/dashboard-3.jpg",
   },
