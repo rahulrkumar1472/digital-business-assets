@@ -15,12 +15,21 @@ model Lead {
   websiteUrl    String
   reason        String
   email         String?
+  name          String?
+  phone         String?
+  website       String?
+  source        String?
+  pagePath      String?
+  consentWeekly Boolean       @default(false)
+  auditReport   Json?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   scans         WebsiteScan[]
 
   @@index([createdAt])
   @@index([businessName])
+  @@index([email])
+  @@index([source])
 }
 
 model User {

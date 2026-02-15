@@ -32,6 +32,7 @@ export default function FreeSeoAndConversionAuditPage() {
         { label: "Trust", score: "59", detail: "Confidence cues are present but under-leveraged." },
       ]}
       nextStepIntro="Use the report to sequence optimisation and avoid wasting time on improvements that do not increase qualified outcomes."
+      schemaPath="/free-seo-and-conversion-audit"
       faqs={[
         {
           question: "Why combine SEO and conversion in one report?",

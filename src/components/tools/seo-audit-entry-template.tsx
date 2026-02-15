@@ -4,9 +4,12 @@ import { FAQ } from "@/components/marketing/faq";
 import { FinalCTA } from "@/components/marketing/final-cta";
 import { MotionReveal } from "@/components/marketing/motion-reveal";
 import { SectionBlock } from "@/components/marketing/section-block";
+import { JsonLd } from "@/components/shared/json-ld";
 import { AuditTrustStrip } from "@/components/tools/audit-trust-strip";
 import { AuditUrlLaunchForm } from "@/components/tools/audit-url-launch-form";
 import { GlowGrid } from "@/components/visuals/glow-grid";
+import { faqSchema, softwareApplicationSchema } from "@/lib/schema";
+import { faqToSchemaItems } from "@/lib/schema-helpers";
 import type { FaqItem } from "@/types/content";
 
 type SeoAuditEntryTemplateProps = {
@@ -23,6 +26,7 @@ type SeoAuditEntryTemplateProps = {
   faqs: FaqItem[];
   finalTitle: string;
   finalDescription: string;
+  schemaPath?: string;
 };
 
 export function SeoAuditEntryTemplate({
@@ -39,9 +43,23 @@ export function SeoAuditEntryTemplate({
   faqs,
   finalTitle,
   finalDescription,
+  schemaPath,
 }: SeoAuditEntryTemplateProps) {
   return (
     <>
+      {schemaPath ? (
+        <JsonLd
+          data={softwareApplicationSchema({
+            name: "Website Growth Audit",
+            description:
+              "Free instant website growth audit for UK businesses with scores, leak diagnostics, and conversion-focused action plans.",
+            path: schemaPath,
+            isFree: true,
+          })}
+        />
+      ) : null}
+      <JsonLd data={faqSchema(faqToSchemaItems(faqs))} />
+
       <SectionBlock className="pt-18 md:pt-24">
         <div className="relative overflow-hidden rounded-3xl border border-cyan-500/30 bg-[linear-gradient(145deg,rgba(34,211,238,0.16),rgba(15,23,42,0.9))] p-6 md:p-8">
           <GlowGrid className="opacity-70" />
@@ -50,7 +68,7 @@ export function SeoAuditEntryTemplate({
             <h1 className="mt-3 text-4xl font-semibold text-white md:text-6xl">{title}</h1>
             <p className="mt-4 max-w-3xl text-sm leading-relaxed text-slate-200 md:text-lg">{description}</p>
             <div className="mt-6">
-              <AuditUrlLaunchForm submitLabel="Run free growth audit" />
+              <AuditUrlLaunchForm submitLabel="Start free website scan" destination="start" />
             </div>
             <p className="mt-3 text-xs text-slate-300">Instant report. No spam. Email optional.</p>
           </MotionReveal>
@@ -111,8 +129,8 @@ export function SeoAuditEntryTemplate({
           <h2 className="text-3xl font-semibold text-white md:text-4xl">Where to go next</h2>
           <p className="mt-2 max-w-3xl text-sm text-slate-300">{nextStepIntro}</p>
           <div className="mt-4 flex flex-wrap gap-3 text-sm">
-            <Link href="/website-growth-audit-free" className="font-semibold text-cyan-300 hover:text-cyan-200">
-              Main audit landing
+            <Link href="/tools/website-audit/start" className="font-semibold text-cyan-300 hover:text-cyan-200">
+              Start free website scan
             </Link>
             <Link href="/services" className="font-semibold text-cyan-300 hover:text-cyan-200">
               Service modules

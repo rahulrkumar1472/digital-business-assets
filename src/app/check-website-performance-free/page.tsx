@@ -32,6 +32,7 @@ export default function CheckWebsitePerformanceFreePage() {
         { label: "Trust", score: "57", detail: "Social proof placement weakens buying confidence." },
       ]}
       nextStepIntro="Once you know the performance bottleneck, you can either iterate with guided checks or move straight into implementation support."
+      schemaPath="/check-website-performance-free"
       faqs={[
         {
           question: "What does performance mean in this audit?",

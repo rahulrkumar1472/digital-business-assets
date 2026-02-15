@@ -61,6 +61,8 @@ export function getBreadcrumbItems(pathname: string): BreadcrumbItem[] {
         items.push({ label: "Start" });
       } else if (segments[2] === "results") {
         items.push({ label: "Results" });
+      } else if (segments[2] === "pdf") {
+        items.push({ label: "PDF" });
       }
       return items;
     }
@@ -137,4 +139,3 @@ export function getBreadcrumbItems(pathname: string): BreadcrumbItem[] {
 
   return items;
 }
-

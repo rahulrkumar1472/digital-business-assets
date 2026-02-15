@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Check, Download, FileDown, Sparkles } from "lucide-react";
 
@@ -17,6 +17,15 @@ type SimulatorMode = "preview" | "full";
 type AIGrowthSimulatorProps = {
   mode?: SimulatorMode;
   className?: string;
+  prefill?: {
+    industry?: string;
+    goal?: string;
+    readinessScore?: number;
+    topActions?: string[];
+    monthlyVisitors?: number;
+    conversionRate?: number;
+    avgOrderValue?: number;
+  };
 };
 
 type TrafficSources = {
@@ -77,6 +86,74 @@ function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
 
+function toSimulatorIndustry(value?: string): SimulatorState["industry"] {
+  const input = (value || "").toLowerCase();
+  if (!input) return defaults.industry;
+  if (/(ecom|shop|retail|store|d2c)/.test(input)) return "ecom";
+  if (/(local|service|trade|plumb|electric|builder)/.test(input)) return "local";
+  if (/(clinic|medical|health|dental|dentist)/.test(input)) return "clinics";
+  if (/(estate|property|real)/.test(input)) return "realestate";
+  if (/(law|legal)/.test(input)) return "law";
+  if (/(gym|fitness)/.test(input)) return "gyms";
+  return "trades";
+}
+
+function buildInitialState(prefill?: AIGrowthSimulatorProps["prefill"]): SimulatorState {
+  const base: SimulatorState = {
+    ...defaults,
+    trafficSources: { ...defaults.trafficSources },
+  };
+
+  if (!prefill) {
+    return base;
+  }
+
+  base.industry = toSimulatorIndustry(prefill.industry);
+  const readiness = Number.isFinite(prefill.readinessScore) ? clamp(Number(prefill.readinessScore), 20, 95) : null;
+  if (readiness !== null) {
+    base.responseTimeMinutes = Math.round(clamp(50 - readiness * 0.38, 3, 45));
+    base.followUpMaturity = Math.round(clamp((readiness - 18) / 15, 1, 5));
+    base.reviewCount = Math.round(clamp(12 + readiness * 1.6, 10, 220));
+    base.noShowRate = Math.round(clamp(36 - readiness * 0.22, 6, 35));
+    base.conversionRate = Math.round(clamp(9 + readiness * 0.11, 6, 28));
+  }
+
+  if (Number.isFinite(prefill.conversionRate) && Number(prefill.conversionRate) > 0) {
+    base.conversionRate = clamp(Number(prefill.conversionRate), 0.3, 60);
+  }
+  if (Number.isFinite(prefill.avgOrderValue) && Number(prefill.avgOrderValue) > 0) {
+    base.avgOrderValue = Math.round(clamp(Number(prefill.avgOrderValue), 10, 50000));
+  }
+  if (Number.isFinite(prefill.monthlyVisitors) && Number(prefill.monthlyVisitors) > 0) {
+    const visitors = Number(prefill.monthlyVisitors);
+    const monthlyLeadsFromVisitors = Math.round((visitors * base.conversionRate) / 100);
+    base.monthlyLeads = clamp(monthlyLeadsFromVisitors, 10, 30000);
+    base.monthlyRevenue = Math.max(base.monthlyRevenue, Math.round(base.monthlyLeads * base.avgOrderValue * 0.75));
+  }
+
+  const goal = (prefill.goal || "").toLowerCase();
+  if (goal.includes("sales")) {
+    base.avgOrderValue = Math.round(base.avgOrderValue * 1.15);
+    base.conversionRate = Math.max(6, base.conversionRate - 1);
+  } else if (goal.includes("leads")) {
+    base.monthlyLeads = Math.round(base.monthlyLeads * 1.12);
+  }
+
+  const topActionsText = (prefill.topActions || []).join(" ").toLowerCase();
+  if (topActionsText.includes("seo")) {
+    base.trafficSources.google = clamp(base.trafficSources.google + 10, 20, 65);
+    base.trafficSources.meta = clamp(base.trafficSources.meta - 5, 5, 40);
+  }
+  if (topActionsText.includes("follow") || topActionsText.includes("crm")) {
+    base.followUpMaturity = Math.max(1, base.followUpMaturity - 1);
+  }
+  if (topActionsText.includes("call") || topActionsText.includes("chat")) {
+    base.responseTimeMinutes = Math.max(3, base.responseTimeMinutes - 4);
+  }
+
+  return base;
+}
+
 function formatCurrency(value: number) {
   return `£${Math.max(0, value).toLocaleString("en-GB", { maximumFractionDigits: 0 })}`;
 }
@@ -100,11 +177,16 @@ function normalizeTraffic(traffic: TrafficSources) {
   };
 }
 
-export function AIGrowthSimulator({ mode = "preview", className }: AIGrowthSimulatorProps) {
-  const [form, setForm] = useState<SimulatorState>(defaults);
+export function AIGrowthSimulator({ mode = "preview", className, prefill }: AIGrowthSimulatorProps) {
+  const initialState = useMemo(() => buildInitialState(prefill), [prefill]);
+  const [form, setForm] = useState<SimulatorState>(initialState);
   const [hasStarted, setHasStarted] = useState(false);
   const [copied, setCopied] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+
+  useEffect(() => {
+    setForm(initialState);
+  }, [initialState]);
 
   const startTracking = () => {
     if (hasStarted) {
@@ -366,6 +448,34 @@ export function AIGrowthSimulator({ mode = "preview", className }: AIGrowthSimul
           <p className="text-xs font-semibold tracking-[0.2em] text-cyan-300 uppercase">AI Growth Simulator</p>
           <h3 className="mt-3 text-3xl font-semibold text-white md:text-4xl">Model your leaks, speed score, and revenue upside</h3>
           <p className="mt-3 text-sm text-slate-300">Use realistic numbers to estimate recovered revenue and decide which modules to install first.</p>
+          {prefill ? (
+            <div className="mt-4 rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-3">
+              <p className="text-xs font-semibold tracking-[0.12em] text-cyan-200 uppercase">Prefilled from your audit report</p>
+              <p className="mt-1 text-xs text-slate-200">
+                Industry: {prefill.industry || "service"} · Goal: {prefill.goal || "leads"} · Search readiness:{" "}
+                {typeof prefill.readinessScore === "number" ? prefill.readinessScore : "n/a"}
+              </p>
+              {typeof prefill.monthlyVisitors === "number" || typeof prefill.conversionRate === "number" || typeof prefill.avgOrderValue === "number" ? (
+                <p className="mt-1 text-xs text-slate-300">
+                  Assumptions:{" "}
+                  {typeof prefill.monthlyVisitors === "number"
+                    ? `Visitors ${Math.round(prefill.monthlyVisitors).toLocaleString("en-GB")} · `
+                    : ""}
+                  {typeof prefill.conversionRate === "number" ? `Conv ${prefill.conversionRate.toFixed(1)}% · ` : ""}
+                  {typeof prefill.avgOrderValue === "number" ? `AOV ${formatCurrency(prefill.avgOrderValue)}` : ""}
+                </p>
+              ) : null}
+              {prefill.topActions?.length ? (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {prefill.topActions.slice(0, 3).map((action) => (
+                    <span key={action} className="rounded-full border border-slate-700 bg-slate-900/80 px-2 py-0.5 text-[11px] text-slate-200">
+                      {action}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">

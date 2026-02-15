@@ -32,6 +32,7 @@ export default function InstantWebsiteAuditReportPage() {
         { label: "Trust", score: "58", detail: "Confidence signals need stronger placement near CTAs." },
       ]}
       nextStepIntro="Treat the report as your launch point, then select the execution track that matches your capacity and urgency."
+      schemaPath="/instant-website-audit-report"
       faqs={[
         {
           question: "How instant is this report?",

@@ -162,7 +162,7 @@ export default function HomePage() {
 
               <div className="flex flex-wrap gap-3">
                 <Button asChild size="sm" className="bg-cyan-300 text-slate-950 hover:bg-cyan-200">
-                  <Link href="/website-growth-audit-free">Free Growth Audit</Link>
+                  <Link href="/tools/website-audit/start">Free Growth Audit</Link>
                 </Button>
                 <Button asChild size="sm" variant="outline" className="border-slate-700 bg-slate-950/70 text-slate-100 hover:bg-slate-900">
                   <Link href="/playground">See sample report</Link>

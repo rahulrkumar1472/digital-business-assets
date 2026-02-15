@@ -32,6 +32,7 @@ export default function WebsiteHealthCheckFreePage() {
         { label: "Trust", score: "52", detail: "Proof and confidence elements need stronger prominence." },
       ]}
       nextStepIntro="Once your health baseline is clear, choose whether to execute internally or accelerate with done-for-you deployment."
+      schemaPath="/website-health-check-free"
       faqs={[
         {
           question: "What is included in this health check?",

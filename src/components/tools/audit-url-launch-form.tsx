@@ -12,6 +12,7 @@ type AuditUrlLaunchFormProps = {
   defaultGoal?: "leads" | "sales";
   submitLabel?: string;
   showAdvancedToggle?: boolean;
+  destination?: "results" | "start";
 };
 
 function normalizeUrl(value: string) {
@@ -27,6 +28,7 @@ export function AuditUrlLaunchForm({
   defaultGoal = "leads",
   submitLabel = "Run free growth audit",
   showAdvancedToggle = false,
+  destination = "results",
 }: AuditUrlLaunchFormProps) {
   const router = useRouter();
   const [url, setUrl] = useState("");
@@ -53,6 +55,11 @@ export function AuditUrlLaunchForm({
       industry: industry || "service",
       goal: goal || "leads",
     }).toString();
+
+    if (destination === "start") {
+      router.push(`/tools/website-audit/start?${query}`);
+      return;
+    }
 
     router.push(`/tools/website-audit/results?${query}`);
   };

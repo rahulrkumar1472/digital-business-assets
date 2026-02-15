@@ -78,13 +78,6 @@ export default function ToolsWebsiteAuditPage() {
                   <Link href="/services">See upgrade modules</Link>
                 </Button>
               </div>
-              <div className="mt-4 rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-3">
-                <p className="text-xs font-semibold tracking-[0.12em] text-cyan-200 uppercase">Launch package</p>
-                <p className="mt-1 text-sm text-slate-200">Prefer a cleaner URL-first entry page for campaigns and ads? Use the dedicated launch landing.</p>
-                <Link href="/website-growth-audit-free" className="mt-2 inline-flex text-sm font-semibold text-cyan-300 hover:text-cyan-200">
-                  Open /website-growth-audit-free
-                </Link>
-              </div>
             </MotionReveal>
 
             <MotionReveal delay={0.06} className="space-y-4">

@@ -1,13 +1,14 @@
 import type { Metadata, Viewport } from "next";
 import { Manrope, Space_Grotesk } from "next/font/google";
+import { Suspense } from "react";
 
 import { MobileOverflowHelper } from "@/components/dev/mobile-overflow-helper";
 import { MobileStickyFooter } from "@/components/layout/mobile-sticky-footer";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { ChatWidget } from "@/components/chat/chat-widget";
+import { LeadPopup } from "@/components/leads/lead-popup";
 import { FunnelProvider } from "@/components/funnel/funnel-provider";
-import { GuaranteeOfferPopup } from "@/components/marketing/guarantee-offer-popup";
 import { PremiumBackground } from "@/components/marketing/premium-background";
 import { Breadcrumbs } from "@/components/nav/breadcrumbs";
 import { BreadcrumbSchema } from "@/components/seo/breadcrumb-schema";
@@ -58,7 +59,9 @@ export default function RootLayout({
             <main className="pb-[calc(5.4rem+env(safe-area-inset-bottom))] lg:pb-0">{children}</main>
             <SiteFooter />
             <MobileStickyFooter />
-            <GuaranteeOfferPopup />
+            <Suspense fallback={null}>
+              <LeadPopup />
+            </Suspense>
             <ChatWidget />
             <MobileOverflowHelper />
           </div>

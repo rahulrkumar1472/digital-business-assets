@@ -17,12 +17,34 @@ export type RevenueLeak = {
   estimatedImpact: string;
 };
 
+export type LiveAuditCheck = {
+  label: string;
+  pass: boolean;
+  note: string;
+};
+
 export type LiveAuditSignal = {
   source: "live";
+  titleText: string | null;
   titleLength: number | null;
+  h1Text: string | null;
+  metaDescriptionLength: number | null;
   hasMetaDescription: boolean;
+  hasCanonical: boolean;
+  hasRobotsMeta: boolean;
+  hasOgTitle: boolean;
+  hasOgDescription: boolean;
   hasH1: boolean;
   hasDirectContact: boolean;
+  hasEmailContact: boolean;
+  hasPhoneContact: boolean;
+  hasAddressSignal: boolean;
+  likelySiteType: "ecom" | "service/local" | "general";
+  scriptTagCount: number;
+  imageTagCount: number;
+  hasJsonLd: boolean;
+  checks: LiveAuditCheck[];
+  summaryScore: number;
   summary: string;
 };
 
@@ -266,29 +288,142 @@ function buildMediumWins(ranked: AuditCategory[], context: AuditContext): string
   return uniqueStrings([...contextWins, ...ranked.map((category) => byCategory[category])]).slice(0, 3);
 }
 
+function readMetaContent(html: string, attribute: "name" | "property", key: string) {
+  const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const primaryRegex = new RegExp(
+    `<meta[^>]*${attribute}=["']${escapedKey}["'][^>]*content=["']([^"']*)["'][^>]*>`,
+    "i",
+  );
+  const primaryMatch = html.match(primaryRegex);
+  if (primaryMatch?.[1]) {
+    return primaryMatch[1].trim();
+  }
+
+  const fallbackRegex = new RegExp(
+    `<meta[^>]*content=["']([^"']*)["'][^>]*${attribute}=["']${escapedKey}["'][^>]*>`,
+    "i",
+  );
+  const fallbackMatch = html.match(fallbackRegex);
+  if (fallbackMatch?.[1]) {
+    return fallbackMatch[1].trim();
+  }
+
+  return "";
+}
+
 function parseHtmlSignal(html: string): Omit<LiveAuditSignal, "source"> {
   const normalizedHtml = html.slice(0, 350000);
 
   const titleMatch = normalizedHtml.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
   const titleText = titleMatch ? titleMatch[1].replace(/\s+/g, " ").trim() : "";
   const titleLength = titleText ? titleText.length : null;
+  const h1Match = normalizedHtml.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
+  const h1Text = h1Match ? h1Match[1].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim() : "";
 
-  const hasMetaDescription =
-    /<meta[^>]+name=["']description["'][^>]*content=["'][^"']+["'][^>]*>/i.test(normalizedHtml) ||
-    /<meta[^>]+content=["'][^"']+["'][^>]*name=["']description["'][^>]*>/i.test(normalizedHtml);
-  const hasH1 = /<h1[\s>][\s\S]*?<\/h1>/i.test(normalizedHtml);
-  const hasDirectContact = /href=["'](?:tel:|mailto:)/i.test(normalizedHtml);
+  const metaDescription = readMetaContent(normalizedHtml, "name", "description");
+  const metaDescriptionLength = metaDescription ? metaDescription.length : null;
+  const hasMetaDescription = metaDescriptionLength !== null;
+  const hasCanonical =
+    /<link[^>]+rel=["']canonical["'][^>]*href=["'][^"']+["'][^>]*>/i.test(normalizedHtml) ||
+    /<link[^>]+href=["'][^"']+["'][^>]*rel=["']canonical["'][^>]*>/i.test(normalizedHtml);
+  const hasRobotsMeta =
+    /<meta[^>]+name=["']robots["'][^>]*content=["'][^"']+["'][^>]*>/i.test(normalizedHtml) ||
+    /<meta[^>]+content=["'][^"']+["'][^>]*name=["']robots["'][^>]*>/i.test(normalizedHtml);
+  const hasOgTitle = Boolean(readMetaContent(normalizedHtml, "property", "og:title"));
+  const hasOgDescription = Boolean(readMetaContent(normalizedHtml, "property", "og:description"));
+  const hasH1 = Boolean(h1Text);
+  const hasEmailContact = /href=["']mailto:|[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(normalizedHtml);
+  const hasPhoneContact = /href=["']tel:|(?:\+?\d[\d\s().-]{8,}\d)/i.test(normalizedHtml);
+  const hasAddressSignal = /<address[\s>]|[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}/i.test(normalizedHtml);
+  const hasDirectContact = hasEmailContact || hasPhoneContact;
+  const scriptTagCount = (normalizedHtml.match(/<script\b/gi) || []).length;
+  const imageTagCount = (normalizedHtml.match(/<img\b/gi) || []).length;
+  const hasJsonLd = /<script[^>]*type=["']application\/ld\+json["'][^>]*>/i.test(normalizedHtml);
+  const likelySiteType = /(cart|checkout|add to cart|basket|product)/i.test(normalizedHtml)
+    ? "ecom"
+    : /(booking|book now|appointment|contact|clinic|service|quote)/i.test(normalizedHtml)
+      ? "service/local"
+      : "general";
+
+  const checks: LiveAuditCheck[] = [
+    {
+      label: "Title length",
+      pass: titleLength !== null && titleLength >= 30 && titleLength <= 60,
+      note: titleLength !== null ? `${titleLength} chars` : "Missing <title>",
+    },
+    {
+      label: "Meta description",
+      pass: hasMetaDescription && metaDescriptionLength !== null && metaDescriptionLength >= 120 && metaDescriptionLength <= 170,
+      note: metaDescriptionLength !== null ? `${metaDescriptionLength} chars` : "Missing meta description",
+    },
+    {
+      label: "Canonical tag",
+      pass: hasCanonical,
+      note: hasCanonical ? "Canonical found" : "Canonical missing",
+    },
+    {
+      label: "Robots meta",
+      pass: hasRobotsMeta,
+      note: hasRobotsMeta ? "Robots meta found" : "Robots meta missing",
+    },
+    {
+      label: "Open Graph essentials",
+      pass: hasOgTitle && hasOgDescription,
+      note:
+        hasOgTitle && hasOgDescription
+          ? "og:title + og:description found"
+          : !hasOgTitle && !hasOgDescription
+            ? "og:title and og:description missing"
+            : !hasOgTitle
+              ? "og:title missing"
+              : "og:description missing",
+    },
+    {
+      label: "Script load",
+      pass: scriptTagCount > 0 && scriptTagCount <= 20,
+      note: `${scriptTagCount} script tags`,
+    },
+    {
+      label: "Image density",
+      pass: imageTagCount > 0 && imageTagCount <= 60,
+      note: `${imageTagCount} image tags`,
+    },
+    {
+      label: "JSON-LD schema",
+      pass: hasJsonLd,
+      note: hasJsonLd ? "Structured data found" : "No JSON-LD detected",
+    },
+  ];
+
+  const passedChecks = checks.filter((check) => check.pass).length;
+  const summaryScore = Math.round((passedChecks / checks.length) * 100);
 
   const summaryParts: string[] = [];
-  summaryParts.push(hasMetaDescription ? "Meta description found" : "Meta description missing");
+  summaryParts.push(`${passedChecks}/${checks.length} checks passed`);
   summaryParts.push(hasH1 ? "H1 found" : "H1 missing");
   summaryParts.push(hasDirectContact ? "Direct contact link found" : "No direct contact link detected");
 
   return {
+    titleText: titleText || null,
     titleLength,
+    h1Text: h1Text || null,
+    metaDescriptionLength,
     hasMetaDescription,
+    hasCanonical,
+    hasRobotsMeta,
+    hasOgTitle,
+    hasOgDescription,
     hasH1,
     hasDirectContact,
+    hasEmailContact,
+    hasPhoneContact,
+    hasAddressSignal,
+    likelySiteType,
+    scriptTagCount,
+    imageTagCount,
+    hasJsonLd,
+    checks,
+    summaryScore,
     summary: summaryParts.join(" · "),
   };
 }

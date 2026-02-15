@@ -32,6 +32,7 @@ export default function FreeWebsiteAuditForSmallBusinessPage() {
         { label: "Trust", score: "61", detail: "Proof exists but placement can improve response rate." },
       ]}
       nextStepIntro="After reviewing your baseline, decide whether you want to keep control in-house or hand implementation to a specialist team."
+      schemaPath="/free-website-audit-for-small-business"
       faqs={[
         {
           question: "Is this designed for small businesses specifically?",

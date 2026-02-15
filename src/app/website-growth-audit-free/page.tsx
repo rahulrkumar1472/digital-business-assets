@@ -9,7 +9,8 @@ import { AuditTrustStrip } from "@/components/tools/audit-trust-strip";
 import { AuditUrlLaunchForm } from "@/components/tools/audit-url-launch-form";
 import { GlowGrid } from "@/components/visuals/glow-grid";
 import { buildMetadata } from "@/lib/seo";
-import { softwareApplicationSchema } from "@/lib/schema";
+import { faqSchema, softwareApplicationSchema } from "@/lib/schema";
+import { faqToSchemaItems } from "@/lib/schema-helpers";
 
 export const metadata = buildMetadata({ path: "/website-growth-audit-free" });
 
@@ -74,6 +75,7 @@ export default function WebsiteGrowthAuditFreePage() {
           isFree: true,
         })}
       />
+      <JsonLd data={faqSchema(faqToSchemaItems(faqs))} />
 
       <SectionBlock className="pt-18 md:pt-24">
         <div className="relative overflow-hidden rounded-3xl border border-cyan-500/30 bg-[linear-gradient(145deg,rgba(34,211,238,0.18),rgba(15,23,42,0.92))] p-6 md:p-8">
@@ -85,7 +87,7 @@ export default function WebsiteGrowthAuditFreePage() {
               Enter your URL and get an instant growth report with priority fixes, impact estimates, and the shortest route to better lead and sales performance.
             </p>
             <div className="mt-6">
-              <AuditUrlLaunchForm submitLabel="Run free growth audit" />
+              <AuditUrlLaunchForm submitLabel="Start free website scan" destination="start" />
             </div>
             <p className="mt-3 text-xs text-slate-300">Instant report. No spam. Email optional.</p>
           </MotionReveal>

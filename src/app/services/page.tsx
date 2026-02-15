@@ -172,8 +172,8 @@ export default function ServicesPage() {
               </Link>
             </Button>
           </div>
-          <Link href="/website-growth-audit-free" className="mt-3 inline-flex text-xs font-semibold text-cyan-300 hover:text-cyan-200">
-            Prefer the URL-first launch page? Open free growth audit landing
+          <Link href="/tools/website-audit/start" className="mt-3 inline-flex text-xs font-semibold text-cyan-300 hover:text-cyan-200">
+            Start free website scan
           </Link>
         </MotionReveal>
       </SectionBlock>

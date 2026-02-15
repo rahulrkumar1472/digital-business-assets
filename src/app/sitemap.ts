@@ -11,6 +11,7 @@ const staticRoutes = [
   "/tools/website-audit",
   "/tools/website-audit/start",
   "/tools/website-audit/results",
+  "/tools/website-audit/pdf",
   "/website-growth-audit-free",
   "/check-website-performance-free",
   "/free-website-audit-for-small-business",

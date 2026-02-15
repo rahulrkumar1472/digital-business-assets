@@ -19,7 +19,45 @@ export const metadata = buildMetadata({ path: "/growth-simulator" });
 
 const faqs = growthSimulatorFaqs();
 
-export default function GrowthSimulatorPage() {
+type GrowthSimulatorPageProps = {
+  searchParams: Promise<{
+    industry?: string;
+    goal?: string;
+    readinessScore?: string;
+    topActions?: string;
+    visitors?: string;
+    conversionRate?: string;
+    avgOrderValue?: string;
+  }>;
+};
+
+function parseTopActions(value?: string) {
+  if (!value) {
+    return [];
+  }
+  return value
+    .split("|")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 6);
+}
+
+export default async function GrowthSimulatorPage({ searchParams }: GrowthSimulatorPageProps) {
+  const params = await searchParams;
+  const readinessScore = Number(params.readinessScore);
+  const monthlyVisitors = Number(params.visitors);
+  const conversionRate = Number(params.conversionRate);
+  const avgOrderValue = Number(params.avgOrderValue);
+  const prefill = {
+    industry: params.industry,
+    goal: params.goal,
+    readinessScore: Number.isFinite(readinessScore) ? readinessScore : undefined,
+    topActions: parseTopActions(params.topActions),
+    monthlyVisitors: Number.isFinite(monthlyVisitors) && monthlyVisitors > 0 ? monthlyVisitors : undefined,
+    conversionRate: Number.isFinite(conversionRate) && conversionRate > 0 ? conversionRate : undefined,
+    avgOrderValue: Number.isFinite(avgOrderValue) && avgOrderValue > 0 ? avgOrderValue : undefined,
+  };
+
   return (
     <>
       <JsonLd data={faqSchema(faqToSchemaItems(faqs))} />
@@ -38,7 +76,7 @@ export default function GrowthSimulatorPage() {
       </SectionBlock>
 
       <SectionBlock className="pt-4">
-        <AIGrowthSimulator mode="full" />
+        <AIGrowthSimulator mode="full" prefill={prefill} />
       </SectionBlock>
 
       <SectionBlock>
