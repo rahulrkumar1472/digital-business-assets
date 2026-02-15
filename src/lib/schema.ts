@@ -33,6 +33,36 @@ export function websiteSchema() {
   };
 }
 
+type SoftwareApplicationSchemaInput = {
+  name: string;
+  description: string;
+  path: string;
+  isFree?: boolean;
+};
+
+export function softwareApplicationSchema({
+  name,
+  description,
+  path,
+  isFree = true,
+}: SoftwareApplicationSchemaInput) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name,
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    description,
+    url: absoluteUrl(path),
+    offers: {
+      "@type": "Offer",
+      price: isFree ? "0" : undefined,
+      priceCurrency: "GBP",
+      availability: "https://schema.org/InStock",
+    },
+  };
+}
+
 type ServiceSchemaInput = {
   name: string;
   description: string;

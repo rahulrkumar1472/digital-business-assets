@@ -14,6 +14,7 @@ import { StepperQuiz } from "@/components/marketing/stepper-quiz";
 import { SystemDiagram } from "@/components/marketing/system-diagram";
 import { TrackTile } from "@/components/marketing/track-tile";
 import { DashboardPreviewPanel } from "@/components/marketing/dashboard-preview-panel";
+import { GlowGrid } from "@/components/visuals/glow-grid";
 import { RecommendedNextStep } from "@/components/funnel/next-step";
 import { JsonLd } from "@/components/shared/json-ld";
 import { Badge } from "@/components/ui/badge";
@@ -113,8 +114,9 @@ export default function HomePage() {
       <JsonLd data={faqSchema(faqToSchemaItems(faqs))} />
 
       <SectionBlock className="pt-20 md:pt-28">
-        <div className="rounded-[2rem] border border-cyan-500/35 bg-[linear-gradient(155deg,rgba(56,189,248,0.17),rgba(15,23,42,0.93))] p-6 shadow-[0_42px_130px_rgba(2,6,23,0.7)] md:p-12">
-          <div className="grid gap-10 xl:grid-cols-[1.03fr_0.97fr]">
+        <div className="relative overflow-hidden rounded-[2rem] border border-cyan-500/35 bg-[linear-gradient(155deg,rgba(56,189,248,0.17),rgba(15,23,42,0.93))] p-6 shadow-[0_42px_130px_rgba(2,6,23,0.7)] md:p-12">
+          <GlowGrid className="opacity-60" />
+          <div className="relative z-10 grid gap-10 xl:grid-cols-[1.03fr_0.97fr]">
             <MotionReveal className="space-y-7">
               <Badge variant="outline" className="border-cyan-500/45 bg-cyan-500/10 text-cyan-200">Business OS for UK businesses</Badge>
               <div className="space-y-5">
@@ -156,6 +158,18 @@ export default function HomePage() {
                   <p className="mt-2 text-xs text-cyan-100">Outcome: You identify leaks and deploy only priority fixes.</p>
                   <p className="mt-3 text-xs font-semibold text-cyan-200">Start Track 2</p>
                 </Link>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <Button asChild size="sm" className="bg-cyan-300 text-slate-950 hover:bg-cyan-200">
+                  <Link href="/website-growth-audit-free">Free Growth Audit</Link>
+                </Button>
+                <Button asChild size="sm" variant="outline" className="border-slate-700 bg-slate-950/70 text-slate-100 hover:bg-slate-900">
+                  <Link href="/playground">See sample report</Link>
+                </Button>
+                <Button asChild size="sm" variant="ghost" className="text-cyan-200 hover:bg-cyan-500/10 hover:text-cyan-100">
+                  <Link href="/tools/website-audit/start">Run free website audit</Link>
+                </Button>
               </div>
 
               <div className="flex flex-wrap gap-2">

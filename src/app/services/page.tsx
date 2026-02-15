@@ -105,6 +105,18 @@ export default function ServicesPage() {
             />
           ))}
         </div>
+
+        <MotionReveal className="mt-6">
+          <div className="rounded-2xl border border-cyan-500/30 bg-[linear-gradient(145deg,rgba(34,211,238,0.1),rgba(15,23,42,0.9))] p-4 md:p-5">
+            <p className="text-xs font-semibold tracking-[0.14em] text-cyan-200 uppercase">Not sure what you need?</p>
+            <p className="mt-2 max-w-3xl text-sm text-slate-200">
+              Run the free Website Growth Audit first. You get a score, revenue leaks, and a priority action plan before picking modules.
+            </p>
+            <Button asChild size="sm" className="mt-3 bg-cyan-300 text-slate-950 hover:bg-cyan-200">
+              <Link href="/tools/website-audit/start">Start free website audit</Link>
+            </Button>
+          </div>
+        </MotionReveal>
       </SectionBlock>
 
       <SectionBlock>
@@ -160,6 +172,9 @@ export default function ServicesPage() {
               </Link>
             </Button>
           </div>
+          <Link href="/website-growth-audit-free" className="mt-3 inline-flex text-xs font-semibold text-cyan-300 hover:text-cyan-200">
+            Prefer the URL-first launch page? Open free growth audit landing
+          </Link>
         </MotionReveal>
       </SectionBlock>
 

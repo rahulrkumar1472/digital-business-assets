@@ -5,6 +5,9 @@ import { InContextPricing } from "@/components/marketing/in-context-pricing";
 import { MotionReveal } from "@/components/marketing/motion-reveal";
 import { SectionBlock } from "@/components/marketing/section-block";
 import { VideoSection } from "@/components/marketing/video-section";
+import { GlowGrid } from "@/components/visuals/glow-grid";
+import { OsMap } from "@/components/visuals/os-map";
+import { ScanTimeline } from "@/components/visuals/scan-timeline";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { buildMetadata } from "@/lib/seo";
@@ -50,29 +53,46 @@ export default function ToolsWebsiteAuditPage() {
   return (
     <>
       <SectionBlock className="pt-18 md:pt-24">
-        <MotionReveal className="max-w-4xl">
-          <p className="text-xs font-semibold tracking-[0.2em] text-cyan-300 uppercase">Website audit tool</p>
-          <h1 className="mt-3 text-5xl font-semibold text-white md:text-7xl">
-            You can run a free scan before you spend another pound.
-          </h1>
-          <ul className="mt-4 max-w-3xl space-y-2 text-sm text-slate-300 md:text-base">
-            <li className="list-disc pl-1 marker:text-cyan-300">You see where your site is leaking leads and trust.</li>
-            <li className="list-disc pl-1 marker:text-cyan-300">You get a branded report with clear fix-first priorities.</li>
-            <li className="list-disc pl-1 marker:text-cyan-300">You choose upgrades with transparent from-pricing.</li>
-          </ul>
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <Button asChild size="lg">
-              <Link href="/tools/website-audit/start">Start free website scan</Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              className="border-slate-700 bg-slate-900/45 text-slate-100 hover:bg-slate-800"
-            >
-              <Link href="/services">See upgrade modules</Link>
-            </Button>
+        <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/45 p-6 md:p-8">
+          <GlowGrid className="opacity-70" />
+          <div className="relative z-10 grid gap-6 xl:grid-cols-[1.03fr_0.97fr]">
+            <MotionReveal className="max-w-4xl">
+              <p className="text-xs font-semibold tracking-[0.2em] text-cyan-300 uppercase">Website audit tool</p>
+              <h1 className="mt-3 text-5xl font-semibold text-white md:text-7xl">
+                You can run a free scan before you spend another pound.
+              </h1>
+              <ul className="mt-4 max-w-3xl space-y-2 text-sm text-slate-300 md:text-base">
+                <li className="list-disc pl-1 marker:text-cyan-300">You see where your site is leaking leads and trust.</li>
+                <li className="list-disc pl-1 marker:text-cyan-300">You get a branded report with clear fix-first priorities.</li>
+                <li className="list-disc pl-1 marker:text-cyan-300">You choose upgrades with transparent from-pricing.</li>
+              </ul>
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <Button asChild size="lg">
+                  <Link href="/tools/website-audit/start">Run audit</Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="outline"
+                  className="border-slate-700 bg-slate-900/45 text-slate-100 hover:bg-slate-800"
+                >
+                  <Link href="/services">See upgrade modules</Link>
+                </Button>
+              </div>
+              <div className="mt-4 rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-3">
+                <p className="text-xs font-semibold tracking-[0.12em] text-cyan-200 uppercase">Launch package</p>
+                <p className="mt-1 text-sm text-slate-200">Prefer a cleaner URL-first entry page for campaigns and ads? Use the dedicated launch landing.</p>
+                <Link href="/website-growth-audit-free" className="mt-2 inline-flex text-sm font-semibold text-cyan-300 hover:text-cyan-200">
+                  Open /website-growth-audit-free
+                </Link>
+              </div>
+            </MotionReveal>
+
+            <MotionReveal delay={0.06} className="space-y-4">
+              <ScanTimeline steps={scanSteps.map((step) => step.replace(/^You\\s/, ""))} activeStep={3} />
+              <OsMap compact />
+            </MotionReveal>
           </div>
-        </MotionReveal>
+        </div>
       </SectionBlock>
 
       <SectionBlock className="pt-8">
@@ -122,7 +142,7 @@ export default function ToolsWebsiteAuditPage() {
               <Separator className="my-5 bg-slate-800/80" />
               <Button asChild size="lg" className="w-full">
                 <Link href="/tools/website-audit/start">
-                  Run your free scan
+                  Run audit
                   <ScanSearch className="size-4" />
                 </Link>
               </Button>

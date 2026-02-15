@@ -10,18 +10,18 @@ export const metadata = buildMetadata({ path: "/tools/website-audit/start" });
 
 const expectations = [
   {
-    title: "Step 1: Capture business context",
-    detail: "Tell us your website and your biggest growth blocker.",
+    title: "Step 1: URL-first capture",
+    detail: "Enter your website URL and generate your report instantly.",
     icon: Clock3,
   },
   {
-    title: "Step 2: Run scan checks",
-    detail: "We run speed, technical SEO, and conversion baseline checks.",
+    title: "Step 2: Optional advanced tuning",
+    detail: "Set industry and goal only if you want tailored output before generation.",
     icon: Gauge,
   },
   {
     title: "Step 3: Generate branded report",
-    detail: "You get a downloadable PDF plus a dashboard view of priority fixes.",
+    detail: "You get score diagnostics, revenue leaks, and actionable next steps.",
     icon: FileDown,
   },
 ];
@@ -34,8 +34,8 @@ export default function WebsiteAuditStartPage() {
           <p className="text-xs font-semibold tracking-[0.2em] text-cyan-300 uppercase">Track 2 · Start Scan</p>
           <h1 className="mt-3 text-4xl font-semibold text-white md:text-6xl">Start your free website scan in under 60 seconds</h1>
           <p className="mt-4 text-sm leading-relaxed text-slate-300 md:text-lg">
-            No jargon. No fluff. Tell us what is stuck and we generate a practical report with the next actions your
-            business should take now.
+            No friction. No jargon. URL first, then optional advanced settings. You get a practical report with the
+            next actions your business should take now.
           </p>
         </MotionReveal>
       </SectionBlock>

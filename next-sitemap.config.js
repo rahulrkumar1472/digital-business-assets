@@ -1,6 +1,9 @@
 /** @type {import('next-sitemap').IConfig} */
 module.exports = {
   siteUrl: "https://digitalbusinessassets.co.uk",
-  generateRobotsTxt: true,
+  generateRobotsTxt: false,
+  generateIndexSitemap: false,
+  sitemapBaseFileName: "sitemap-0",
+  exclude: ["/api/*", "/admin/*", "/app/*"],
   sitemapSize: 7000,
 };

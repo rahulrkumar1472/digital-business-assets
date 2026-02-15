@@ -84,6 +84,69 @@ const staticRoutes: RouteMetadataEntry[] = [
     image: "/media/dashboard-call-recovery.svg",
   },
   {
+    path: "/tools/website-audit/results",
+    title: toTitle("Website Growth Audit Results"),
+    description: toDescription(
+      "Review your Website Growth Audit results with score, money leaks, quick wins, module recommendations, and clear next-step CTAs for practical implementation.",
+      "/tools/website-audit/results",
+    ),
+    image: "/media/dashboard-2.jpg",
+  },
+  {
+    path: "/website-growth-audit-free",
+    title: toTitle("Free Website Growth Audit"),
+    description: toDescription(
+      "Run a free website growth audit with instant score output, revenue leak insights, and practical next actions to improve bookings, leads, and sales performance fast.",
+      "/website-growth-audit-free",
+    ),
+    image: "/media/dashboard-2.jpg",
+  },
+  {
+    path: "/check-website-performance-free",
+    title: toTitle("Check Website Performance Free"),
+    description: toDescription(
+      "Check website performance free and identify speed, SEO, conversion, and trust gaps with impact-focused recommendations that support faster revenue improvement decisions.",
+      "/check-website-performance-free",
+    ),
+    image: "/media/dashboard-2.jpg",
+  },
+  {
+    path: "/free-website-audit-for-small-business",
+    title: toTitle("Free Website Audit for SMEs"),
+    description: toDescription(
+      "Free website audit for small business owners who need better lead flow, clearer priorities, and an immediate action plan to improve conversion without wasted effort.",
+      "/free-website-audit-for-small-business",
+    ),
+    image: "/media/dashboard-2.jpg",
+  },
+  {
+    path: "/free-seo-and-conversion-audit",
+    title: toTitle("Free SEO and Conversion Audit"),
+    description: toDescription(
+      "Run a free SEO and conversion audit to uncover intent gaps, booking friction, and trust blockers, then follow a practical action path toward measurable growth outcomes.",
+      "/free-seo-and-conversion-audit",
+    ),
+    image: "/media/dashboard-2.jpg",
+  },
+  {
+    path: "/website-health-check-free",
+    title: toTitle("Website Health Check Free"),
+    description: toDescription(
+      "Get a website health check free and translate technical findings into business impact with clear priorities, practical tasks, and implementation options for fast progress.",
+      "/website-health-check-free",
+    ),
+    image: "/media/dashboard-2.jpg",
+  },
+  {
+    path: "/instant-website-audit-report",
+    title: toTitle("Instant Website Audit Report"),
+    description: toDescription(
+      "Generate an instant website audit report with score diagnostics, leak insights, and implementation-ready recommendations to improve lead quality and conversion outcomes.",
+      "/instant-website-audit-report",
+    ),
+    image: "/media/dashboard-2.jpg",
+  },
+  {
     path: "/growth-simulator",
     title: toTitle("AI Growth Simulator Tool"),
     description: toDescription(
@@ -190,6 +253,15 @@ const staticRoutes: RouteMetadataEntry[] = [
       "/book/confirmation",
     ),
     image: "/media/hero-dashboard.jpg",
+  },
+  {
+    path: "/playground",
+    title: toTitle("Website Audit Playground"),
+    description: toDescription(
+      "Preview the Website Growth Audit experience with sample inputs, animated timeline scoring, module recommendations, and conversion-focused CTA pathways.",
+      "/playground",
+    ),
+    image: "/media/dashboard-3.jpg",
   },
   {
     path: "/website-audit",
