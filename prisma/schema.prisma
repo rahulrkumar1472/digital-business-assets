@@ -25,6 +25,9 @@ model Lead {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   scans         WebsiteScan[]
+  auditRuns     AuditRun[]
+  simulatorRuns SimulatorRun[]
+  events        Event[]
 
   @@index([createdAt])
   @@index([businessName])
@@ -113,4 +116,77 @@ enum ScanStatus {
   PROCESSING
   COMPLETED
   FAILED
+}
+
+model AuditRun {
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  url        String
+  scoresJson Json
+  leadId     String?
+  reportId   String?
+
+  lead   Lead?   @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  events        Event[]
+  simulatorRuns SimulatorRun[]
+
+  @@index([createdAt])
+  @@index([leadId])
+  @@index([url])
+  @@index([reportId])
+}
+
+model Event {
+  id         String   @id @default(cuid())
+  type       String
+  payloadJson Json?
+  createdAt  DateTime @default(now())
+  leadId     String?
+  auditRunId String?
+  simulatorRunId String?
+
+  lead         Lead?         @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  auditRun     AuditRun?     @relation(fields: [auditRunId], references: [id], onDelete: SetNull)
+  simulatorRun SimulatorRun? @relation(fields: [simulatorRunId], references: [id], onDelete: SetNull)
+
+  @@index([type])
+  @@index([createdAt])
+  @@index([leadId])
+  @@index([auditRunId])
+  @@index([simulatorRunId])
+}
+
+model SimulatorRun {
+  id                  String   @id @default(cuid())
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  leadId              String?
+  auditRunId          String?
+  domain              String?
+  businessName        String?
+  industry            String
+  offerType           String
+  goal                String
+  locationIntent      String
+  visitors            Int
+  conversionRate      Float
+  avgOrderValue       Float
+  closeRate           Float
+  grossMargin         Float?
+  responseTimeMinutes Int
+  followups           Int
+  leadCapturePoints   Json?
+  trustSignals        Json?
+  outputs             Json
+  currency            String   @default("GBP")
+
+  lead     Lead?     @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  auditRun AuditRun? @relation(fields: [auditRunId], references: [id], onDelete: SetNull)
+  events   Event[]
+
+  @@index([createdAt])
+  @@index([leadId])
+  @@index([auditRunId])
+  @@index([domain])
 }

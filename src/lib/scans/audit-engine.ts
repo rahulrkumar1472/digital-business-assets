@@ -1,9 +1,13 @@
 import { mapRecommendedModules } from "@/lib/scans/module-map";
+import { fetchPsiMetrics } from "@/lib/scans/psi";
 import type {
   AuditCategory,
   AuditCheck,
+  AuditDashboardScores,
+  ContentClarityScore,
   AuditResult,
   AuditScores,
+  BusinessSnapshot,
   CompetitorResult,
   RAG,
   VisibilitySignals,
@@ -30,7 +34,12 @@ type RawSignal = {
   titleLength: number;
   h1Text: string;
   h1Count: number;
+  h2Count: number;
+  h3Count: number;
+  headingsCount: number;
+  wordCount: number;
   metaDescriptionLength: number;
+  metaDescriptionText: string;
   hasMetaDescription: boolean;
   hasCanonical: boolean;
   hasRobotsMeta: boolean;
@@ -40,6 +49,7 @@ type RawSignal = {
   internalLinkCount: number;
   externalLinkCount: number;
   scriptCount: number;
+  headScriptCount: number;
   imageCount: number;
   lazyImageCount: number;
   hasViewportMeta: boolean;
@@ -49,6 +59,10 @@ type RawSignal = {
   hasAddressSignal: boolean;
   hasReviewKeywords: boolean;
   hasPolicyLinks: boolean;
+  hasPricingLink: boolean;
+  hasClearCtaText: boolean;
+  imageWithAltCount: number;
+  imageAltRatio: number;
   hasPrimaryCta: boolean;
   hasForm: boolean;
   hasBookingHint: boolean;
@@ -58,15 +72,11 @@ type RawSignal = {
   hasAuthorityBaseline: boolean;
   domEstimate: number;
   htmlBytes: number;
+  fetchDurationMs: number;
+  hasFaqHint: boolean;
+  lexicalDiversity: number;
   fetchSucceeded: boolean;
   fetchError?: string;
-};
-
-type PsiMetrics = {
-  performanceScore: number;
-  lcpMs?: number;
-  cls?: number;
-  inpMs?: number;
 };
 
 const DEFAULT_URL = "https://example.co.uk";
@@ -77,7 +87,7 @@ function clamp(value: number, min: number, max: number) {
 }
 
 function toRag(score: number): RAG {
-  if (score >= 80) {
+  if (score >= 90) {
     return "green";
   }
   if (score >= 50) {
@@ -154,6 +164,8 @@ function parseHtmlSignals(normalizedUrl: string, fetchUrl: string, html: string,
   const hasOgTitle = Boolean(contentMeta(source, "og:title", "property"));
   const hasOgDescription = Boolean(contentMeta(source, "og:description", "property"));
   const jsonLdCount = countRegex(source, /<script[^>]*type=["']application\/ld\+json["'][^>]*>/gi);
+  const headMatch = source.match(/<head[^>]*>([\s\S]*?)<\/head>/i);
+  const headContent = headMatch?.[1] || "";
 
   const hrefs = extractHrefValues(source);
   const urlObject = new URL(fetchUrl);
@@ -184,9 +196,14 @@ function parseHtmlSignals(normalizedUrl: string, fetchUrl: string, html: string,
   }
 
   const scriptCount = countRegex(source, /<script\b/gi);
+  const headScriptCount = countRegex(headContent, /<script\b/gi);
   const imageCount = countRegex(source, /<img\b/gi);
+  const imageWithAltCount = countRegex(source, /<img[^>]*alt=["'][^"']+["'][^>]*>/gi);
   const lazyImageCount = countRegex(source, /<img[^>]*loading=["']lazy["'][^>]*>/gi);
   const h1Count = countRegex(source, /<h1\b/gi);
+  const h2Count = countRegex(source, /<h2\b/gi);
+  const h3Count = countRegex(source, /<h3\b/gi);
+  const headingsCount = countRegex(source, /<h[1-6]\b/gi);
   const hasViewportMeta = /<meta[^>]*name=["']viewport["'][^>]*>/i.test(source);
   const hasFavicon = /<link[^>]*rel=["'][^"']*icon[^"']*["'][^>]*>/i.test(source);
 
@@ -197,10 +214,25 @@ function parseHtmlSignals(normalizedUrl: string, fetchUrl: string, html: string,
   const hasPolicyLinks = /\bprivacy\b|\bterms\b|\bcookie\b|refund|returns|cancellation/i.test(source);
 
   const firstChunk = source.slice(0, 2200).toLowerCase();
+  const normalizedText = source
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const wordCount = (normalizedText.match(/\b[0-9A-Za-z][0-9A-Za-z'-]*\b/g) || []).length;
+  const tokenMatches = normalizedText.toLowerCase().match(/\b[0-9a-z][0-9a-z'-]*\b/g) || [];
+  const uniqueTokens = new Set(tokenMatches);
+  const lexicalDiversity = tokenMatches.length > 0 ? uniqueTokens.size / tokenMatches.length : 0;
+  const hasPricingLink = /\bpricing\b|\bprice\b|\bplans?\b|\bcost\b/i.test(source);
   const hasPrimaryCta = /(book now|get quote|get started|start free|talk to us|request demo|buy now|call now)/.test(firstChunk);
+  const hasClearCtaText = /(book now|get quote|get started|start free|talk to us|request demo|buy now|call now|check availability|schedule call)/.test(
+    source.toLowerCase(),
+  );
   const hasForm = /<form\b/i.test(source);
   const hasBookingHint = /\b(book now|appointment|schedule|reserve|calendar)\b/i.test(source);
   const hasTelLink = /href=["']tel:/i.test(source);
+  const hasFaqHint = /\bfaq\b|frequently asked questions/i.test(source);
 
   const socialLinks = {
     facebook: /facebook\.com/i.test(source),
@@ -213,6 +245,7 @@ function parseHtmlSignals(normalizedUrl: string, fetchUrl: string, html: string,
   const hasGoogleBusinessHint = /google\.com\/maps|g\.page|google business profile|google my business/i.test(source);
   const hasAuthorityBaseline = externalLinkCount >= 3 || jsonLdCount > 0 || hasReviewKeywords;
   const domEstimate = countRegex(source, /<[a-z][^>]*>/gi);
+  const imageAltRatio = imageCount > 0 ? imageWithAltCount / imageCount : 1;
 
   return {
     normalizedUrl,
@@ -222,7 +255,12 @@ function parseHtmlSignals(normalizedUrl: string, fetchUrl: string, html: string,
     titleLength: titleText.length,
     h1Text,
     h1Count,
+    h2Count,
+    h3Count,
+    headingsCount,
+    wordCount,
     metaDescriptionLength: metaDescription.length,
+    metaDescriptionText: metaDescription,
     hasMetaDescription: metaDescription.length > 0,
     hasCanonical,
     hasRobotsMeta,
@@ -232,7 +270,10 @@ function parseHtmlSignals(normalizedUrl: string, fetchUrl: string, html: string,
     internalLinkCount,
     externalLinkCount,
     scriptCount,
+    headScriptCount,
     imageCount,
+    imageWithAltCount,
+    imageAltRatio,
     lazyImageCount,
     hasViewportMeta,
     hasFavicon,
@@ -241,6 +282,8 @@ function parseHtmlSignals(normalizedUrl: string, fetchUrl: string, html: string,
     hasAddressSignal,
     hasReviewKeywords,
     hasPolicyLinks,
+    hasPricingLink,
+    hasClearCtaText,
     hasPrimaryCta,
     hasForm,
     hasBookingHint,
@@ -250,6 +293,9 @@ function parseHtmlSignals(normalizedUrl: string, fetchUrl: string, html: string,
     hasAuthorityBaseline,
     domEstimate,
     htmlBytes: source.length,
+    fetchDurationMs: 0,
+    hasFaqHint,
+    lexicalDiversity,
     fetchSucceeded: true,
   };
 }
@@ -263,7 +309,12 @@ function emptySignal(normalizedUrl: string, isHttpsInput: boolean): RawSignal {
     titleLength: 0,
     h1Text: "",
     h1Count: 0,
+    h2Count: 0,
+    h3Count: 0,
+    headingsCount: 0,
+    wordCount: 0,
     metaDescriptionLength: 0,
+    metaDescriptionText: "",
     hasMetaDescription: false,
     hasCanonical: false,
     hasRobotsMeta: false,
@@ -273,7 +324,10 @@ function emptySignal(normalizedUrl: string, isHttpsInput: boolean): RawSignal {
     internalLinkCount: 0,
     externalLinkCount: 0,
     scriptCount: 0,
+    headScriptCount: 0,
     imageCount: 0,
+    imageWithAltCount: 0,
+    imageAltRatio: 0,
     lazyImageCount: 0,
     hasViewportMeta: false,
     hasFavicon: false,
@@ -282,6 +336,8 @@ function emptySignal(normalizedUrl: string, isHttpsInput: boolean): RawSignal {
     hasAddressSignal: false,
     hasReviewKeywords: false,
     hasPolicyLinks: false,
+    hasPricingLink: false,
+    hasClearCtaText: false,
     hasPrimaryCta: false,
     hasForm: false,
     hasBookingHint: false,
@@ -297,6 +353,9 @@ function emptySignal(normalizedUrl: string, isHttpsInput: boolean): RawSignal {
     hasAuthorityBaseline: false,
     domEstimate: 0,
     htmlBytes: 0,
+    fetchDurationMs: 0,
+    hasFaqHint: false,
+    lexicalDiversity: 0,
     fetchSucceeded: false,
   };
 }
@@ -309,6 +368,7 @@ async function fetchSignal(url: string): Promise<RawSignal> {
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 4500);
+  const startedAt = Date.now();
 
   try {
     const response = await fetch(fetchUrl, {
@@ -328,10 +388,13 @@ async function fetchSignal(url: string): Promise<RawSignal> {
     }
 
     const html = await response.text();
-    return parseHtmlSignals(normalizedUrl, fetchUrl, html, isHttpsInput);
+    const parsedSignal = parseHtmlSignals(normalizedUrl, fetchUrl, html, isHttpsInput);
+    parsedSignal.fetchDurationMs = Date.now() - startedAt;
+    return parsedSignal;
   } catch (error) {
     const fallback = emptySignal(normalizedUrl, isHttpsInput);
     fallback.fetchError = error instanceof Error ? error.message : "request failed";
+    fallback.fetchDurationMs = Date.now() - startedAt;
     return fallback;
   } finally {
     clearTimeout(timeout);
@@ -342,8 +405,10 @@ function buildSpeedHeuristic(signal: RawSignal) {
   let score = 86;
 
   score -= Math.max(0, signal.scriptCount - 10) * 1.8;
+  score -= Math.max(0, signal.headScriptCount - 4) * 2.4;
   score -= Math.max(0, signal.imageCount - 24) * 0.65;
   score -= Math.max(0, signal.domEstimate - 900) / 28;
+  score -= Math.max(0, signal.fetchDurationMs - 1200) / 80;
 
   if (signal.htmlBytes > 250_000) {
     score -= 5;
@@ -370,72 +435,57 @@ function buildSpeedHeuristic(signal: RawSignal) {
   }
 
   const estimatedLoadComplexity = clamp(
-    Math.round(signal.scriptCount * 1.9 + signal.imageCount * 0.8 + signal.domEstimate / 140),
+    Math.round(signal.scriptCount * 1.9 + signal.headScriptCount * 2.2 + signal.imageCount * 0.8 + signal.domEstimate / 140),
     12,
     100,
+  );
+
+  const ttfbEstimateMs = clamp(
+    Math.round(signal.fetchDurationMs * 0.42 + signal.headScriptCount * 24 + signal.scriptCount * 6),
+    150,
+    4200,
   );
 
   return {
     score: clamp(Math.round(score), 15, 98),
     estimatedLoadComplexity,
+    ttfbEstimateMs,
   };
 }
 
-async function fetchPageSpeedMetrics(url: string): Promise<PsiMetrics | null> {
-  const key = process.env.PAGESPEED_API_KEY;
-  if (!key) {
+type PsiAuditMetrics = {
+  performanceScore: number;
+  seoScore?: number;
+  accessibilityScore?: number;
+  bestPracticesScore?: number;
+  fcpMs?: number;
+  lcpMs?: number;
+  tbtMs?: number;
+  cls?: number;
+  siMs?: number;
+  inpMs?: number;
+  cwvStatus: "Pass" | "Needs Improvement" | "Fail" | "Estimated";
+};
+
+async function fetchPageSpeedMetrics(url: string): Promise<PsiAuditMetrics | null> {
+  const psi = await fetchPsiMetrics(url);
+  if (!psi.available || typeof psi.performanceScore !== "number") {
     return null;
   }
 
-  const endpoint = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?strategy=mobile&category=performance&url=${encodeURIComponent(
-    url,
-  )}&key=${encodeURIComponent(key)}`;
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5200);
-
-  try {
-    const response = await fetch(endpoint, {
-      method: "GET",
-      signal: controller.signal,
-      cache: "no-store",
-      headers: {
-        "user-agent": "DigitalBusinessAssetsAuditBot/2.0 (+https://digitalbusinessassets.co.uk)",
-      },
-    });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    const json = (await response.json()) as {
-      lighthouseResult?: {
-        categories?: { performance?: { score?: number } };
-        audits?: Record<string, { numericValue?: number }>;
-      };
-    };
-
-    const performance = json.lighthouseResult?.categories?.performance?.score;
-    if (typeof performance !== "number") {
-      return null;
-    }
-
-    const audits = json.lighthouseResult?.audits || {};
-    const lcpMs = audits["largest-contentful-paint"]?.numericValue;
-    const cls = audits["cumulative-layout-shift"]?.numericValue;
-    const inpMs = audits["interaction-to-next-paint"]?.numericValue;
-
-    return {
-      performanceScore: clamp(Math.round(performance * 100), 0, 100),
-      lcpMs: typeof lcpMs === "number" ? Math.round(lcpMs) : undefined,
-      cls: typeof cls === "number" ? Number(cls.toFixed(3)) : undefined,
-      inpMs: typeof inpMs === "number" ? Math.round(inpMs) : undefined,
-    };
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timeout);
-  }
+  return {
+    performanceScore: psi.performanceScore,
+    seoScore: psi.seoScore,
+    accessibilityScore: psi.accessibilityScore,
+    bestPracticesScore: psi.bestPracticesScore,
+    fcpMs: psi.FCP,
+    lcpMs: psi.LCP,
+    tbtMs: psi.TBT,
+    cls: psi.CLS,
+    siMs: psi.SI,
+    inpMs: psi.INP,
+    cwvStatus: psi.cwvStatus,
+  };
 }
 
 function impactWeight(impact: AuditCheck["impact"]) {
@@ -474,7 +524,7 @@ function check(
   };
 }
 
-function buildChecks(signal: RawSignal, speedScore: number, psi: PsiMetrics | null, industry: string, goal: string) {
+function buildChecks(signal: RawSignal, speedScore: number, psi: PsiAuditMetrics | null, industry: string, goal: string) {
   const checks: AuditCheck[] = [];
   const industryLower = industry.toLowerCase();
   const goalLower = goal.toLowerCase();
@@ -719,6 +769,22 @@ function buildChecks(signal: RawSignal, speedScore: number, psi: PsiMetrics | nu
 
   checks.push(
     check(
+      "cta-language",
+      "Conversion",
+      "CTA copy clarity",
+      signal.hasClearCtaText ? "green" : "amber",
+      8,
+      signal.hasClearCtaText
+        ? "Clear action language detected (book/get quote/get started)."
+        : "Action text is weak or inconsistent across the page.",
+      "Use one primary CTA phrase repeatedly across hero, nav, and key sections.",
+      "S",
+      "High",
+    ),
+  );
+
+  checks.push(
+    check(
       "lead-capture",
       "Conversion",
       "Lead capture path",
@@ -758,6 +824,48 @@ function buildChecks(signal: RawSignal, speedScore: number, psi: PsiMetrics | nu
       "Add click-to-call and WhatsApp shortcuts for high-intent users.",
       "S",
       localLike ? "High" : "Med",
+    ),
+  );
+
+  checks.push(
+    check(
+      "pricing-path",
+      "Conversion",
+      "Pricing path visibility",
+      signal.hasPricingLink ? "green" : "amber",
+      6,
+      signal.hasPricingLink ? "Pricing/plan cues detected." : "No clear pricing or plan path detected.",
+      "Add a visible pricing or package path to reduce buying friction.",
+      "S",
+      "Med",
+    ),
+  );
+
+  checks.push(
+    check(
+      "content-depth",
+      "SEO",
+      "Content depth and structure",
+      signal.wordCount >= 300 && signal.headingsCount >= 3 ? "green" : signal.wordCount >= 180 ? "amber" : "red",
+      signal.wordCount >= 180 ? 5 : 10,
+      `${signal.wordCount} words and ${signal.headingsCount} headings detected.`,
+      "Expand page copy around pain points, offer, proof, and outcome with clearer heading structure.",
+      "M",
+      "Med",
+    ),
+  );
+
+  checks.push(
+    check(
+      "image-alt-coverage",
+      "SEO",
+      "Image ALT coverage",
+      signal.imageAltRatio >= 0.8 ? "green" : signal.imageAltRatio >= 0.45 ? "amber" : "red",
+      signal.imageAltRatio >= 0.45 ? 4 : 9,
+      `${Math.round(signal.imageAltRatio * 100)}% of images include ALT text.`,
+      "Add descriptive ALT text to key images to improve accessibility and topical relevance.",
+      "S",
+      "Low",
     ),
   );
 
@@ -942,6 +1050,286 @@ function computeScores(checks: AuditCheck[]): AuditScores {
   };
 }
 
+function computeAccessibilityFromSignal(signal: RawSignal, checks: AuditCheck[]) {
+  let score = 88;
+  if (!signal.hasViewportMeta) score -= 12;
+  if (signal.h1Count !== 1) score -= signal.h1Count === 0 ? 15 : 7;
+  if (signal.imageAltRatio < 0.5) score -= 15;
+  else if (signal.imageAltRatio < 0.8) score -= 8;
+  if (!signal.hasTelLink && !signal.hasEmailContact && !signal.hasForm) score -= 8;
+  if (signal.domEstimate > 1800) score -= 6;
+
+  const redCount = checks.filter((check) => check.status === "red" && (check.category === "Conversion" || check.category === "SEO")).length;
+  score -= redCount * 3;
+  return clamp(Math.round(score), 0, 100);
+}
+
+function computeBestPracticesFromSignal(signal: RawSignal) {
+  let score = 84;
+  if (!signal.isHttpsInput) score -= 18;
+  if (!signal.hasCanonical) score -= 8;
+  if (!signal.hasRobotsMeta) score -= 5;
+  if (!signal.hasFavicon) score -= 4;
+  if (!signal.hasPolicyLinks) score -= 9;
+  if (signal.headScriptCount > 8) score -= 8;
+  if (!signal.jsonLdCount) score -= 6;
+  return clamp(Math.round(score), 0, 100);
+}
+
+function computeCustomerExperienceScore(params: {
+  signal: RawSignal;
+  speedScore: number;
+  conversionScore: number;
+  trustScore: number;
+}) {
+  const { signal, speedScore, conversionScore, trustScore } = params;
+  let mobileReadiness = 55;
+  if (signal.hasViewportMeta) mobileReadiness += 18;
+  if (signal.hasPrimaryCta) mobileReadiness += 12;
+  if (signal.hasTelLink || signal.hasForm || signal.hasBookingHint) mobileReadiness += 10;
+  if (signal.headScriptCount > 7) mobileReadiness -= 8;
+  if (signal.domEstimate > 1400) mobileReadiness -= 7;
+  mobileReadiness = clamp(mobileReadiness, 0, 100);
+
+  const trustSignals = [signal.hasPhoneContact, signal.hasEmailContact, signal.hasAddressSignal].filter(Boolean).length;
+  const trustLayer = clamp(Math.round(trustScore * 0.65 + trustSignals * 10), 0, 100);
+
+  return clamp(
+    Math.round(speedScore * 0.35 + conversionScore * 0.3 + trustLayer * 0.2 + mobileReadiness * 0.15),
+    0,
+    100,
+  );
+}
+
+function buildDashboardScores(params: {
+  signal: RawSignal;
+  scores: AuditScores;
+  speedScore: number;
+  checks: AuditCheck[];
+  psi: PsiAuditMetrics | null;
+  contentClarityScore: number;
+}): AuditDashboardScores {
+  const accessibilityHeuristic = computeAccessibilityFromSignal(params.signal, params.checks);
+  const bestPracticesHeuristic = computeBestPracticesFromSignal(params.signal);
+  const customerExperience = computeCustomerExperienceScore({
+    signal: params.signal,
+    speedScore: params.speedScore,
+    conversionScore: params.scores.conversion,
+    trustScore: params.scores.trust,
+  });
+
+  const performance = params.psi?.performanceScore ?? params.speedScore;
+  const seo = params.psi?.seoScore ?? params.scores.seo;
+  const accessibility = params.psi?.accessibilityScore ?? accessibilityHeuristic;
+  const bestPractices = params.psi?.bestPracticesScore ?? bestPracticesHeuristic;
+
+  const overall = clamp(
+    Math.round(
+      performance * 0.23 +
+        seo * 0.22 +
+        accessibility * 0.17 +
+        bestPractices * 0.16 +
+        customerExperience * 0.14 +
+        params.contentClarityScore * 0.08,
+    ),
+    0,
+    100,
+  );
+
+  return {
+    overall,
+    performance,
+    seo,
+    accessibility,
+    bestPractices,
+    customerExperience,
+  };
+}
+
+function likelySiteType(signal: RawSignal, industry?: string): BusinessSnapshot["likelySiteType"] {
+  const value = `${industry || ""} ${signal.titleText} ${signal.h1Text}`.toLowerCase();
+  if (/(checkout|basket|cart|shop|product|buy now|add to cart)/.test(value)) {
+    return "ecom";
+  }
+  if (/(book|appointment|service|clinic|quote|call|local)/.test(value)) {
+    return "service";
+  }
+  return "unknown";
+}
+
+function buildSuggestedCopy(signal: RawSignal, url: string, industry?: string, goal?: string) {
+  let hostLabel = "your business";
+  try {
+    const host = new URL(url).hostname.replace(/^www\./i, "");
+    hostLabel = host.split(".")[0]?.replace(/[-_]/g, " ") || hostLabel;
+  } catch {
+    // no-op
+  }
+
+  const siteType = likelySiteType(signal, industry);
+  const goalText = (goal || "leads").toLowerCase();
+  const focus = goalText.includes("sales") ? "sales" : "leads";
+
+  const heroHeadlines =
+    siteType === "ecom"
+      ? [
+          `Turn more ${hostLabel} visitors into paying customers.`,
+          "Make your product pages convert faster.",
+          "Recover lost checkout intent before it leaves.",
+        ]
+      : [
+          `Turn ${hostLabel} traffic into booked jobs.`,
+          "Get more enquiries from the same website visits.",
+          "Be the first business to respond and win the booking.",
+        ];
+
+  const subheadline =
+    focus === "sales"
+      ? "Clarify your offer, remove friction, and guide buyers to the next step in under 30 seconds."
+      : "Make it obvious what you do, who you help, and how to contact you in one click.";
+
+  const ctaRewrite =
+    siteType === "ecom" ? "See options and buy with confidence" : "Get your quote in under 2 minutes";
+
+  return {
+    heroHeadlines,
+    subheadline,
+    ctaRewrite,
+  };
+}
+
+function buildContentClarityScore(signal: RawSignal, industry?: string, goal?: string): ContentClarityScore {
+  const hostname = (() => {
+    try {
+      return new URL(signal.fetchUrl).hostname.replace(/^www\./i, "");
+    } catch {
+      return "your website";
+    }
+  })();
+
+  const localIntentRelevant = /(local|service|clinic|trade|medical|estate|beauty|legal|plumb|electric|dent)/i.test(
+    industry || "",
+  );
+  const hasServiceSignals = /\b(service|services|solution|package|book|quote|consultation|appointment|pricing)\b/i.test(
+    `${signal.titleText} ${signal.h1Text} ${signal.metaDescriptionText}`,
+  );
+
+  const rubric = [
+    {
+      label: "Clarity of offer",
+      score:
+        signal.h1Count === 1 && signal.hasClearCtaText
+          ? 24
+          : signal.h1Count >= 1 || signal.hasClearCtaText
+            ? 16
+            : 7,
+      maxScore: 24,
+      note: `H1 ${signal.h1Count} · CTA ${signal.hasClearCtaText ? "clear" : "weak"} · title ${signal.titleLength || 0} chars`,
+    },
+    {
+      label: "Trust & proof",
+      score: clamp(
+        (signal.hasReviewKeywords ? 8 : 3) +
+          (signal.hasPolicyLinks ? 5 : 2) +
+          (signal.hasEmailContact ? 4 : 1) +
+          (signal.hasPhoneContact ? 4 : 1),
+        0,
+        21,
+      ),
+      maxScore: 21,
+      note: `Reviews ${signal.hasReviewKeywords ? "yes" : "no"} · policies ${signal.hasPolicyLinks ? "yes" : "no"} · contact cues ${signal.hasPhoneContact || signal.hasEmailContact ? "yes" : "no"}`,
+    },
+    {
+      label: "Service specificity",
+      score: hasServiceSignals && signal.hasPricingLink ? 20 : hasServiceSignals ? 14 : signal.titleLength > 0 ? 9 : 4,
+      maxScore: 20,
+      note: `Service intent ${hasServiceSignals ? "detected" : "weak"} · pricing path ${signal.hasPricingLink ? "present" : "missing"} · goal ${goal || "leads"}`,
+    },
+    {
+      label: "Structure/readability",
+      score: clamp(
+        (signal.wordCount >= 300 ? 8 : signal.wordCount >= 160 ? 5 : 2) +
+          (signal.h2Count >= 1 && signal.h3Count >= 1 ? 7 : signal.h2Count >= 1 ? 5 : signal.headingsCount >= 2 ? 3 : 1) +
+          (signal.internalLinkCount >= 10 ? 5 : signal.internalLinkCount >= 5 ? 3 : 1) +
+          (signal.metaDescriptionLength >= 130 && signal.metaDescriptionLength <= 170 ? 4 : signal.metaDescriptionLength > 0 ? 2 : 0) +
+          (signal.imageAltRatio >= 0.65 ? 4 : signal.imageAltRatio >= 0.35 ? 2 : 0),
+        0,
+        27,
+      ),
+      maxScore: 27,
+      note: `${signal.wordCount} words · H2 ${signal.h2Count} · H3 ${signal.h3Count} · ${signal.internalLinkCount} internal links · meta ${signal.metaDescriptionLength || 0} chars`,
+    },
+    {
+      label: "Local intent signals",
+      score: localIntentRelevant
+        ? clamp(
+            (signal.hasAddressSignal ? 5 : 1) +
+              (signal.hasPhoneContact ? 4 : 1) +
+              (signal.hasGoogleBusinessHint ? 4 : 1) +
+              (signal.hasFaqHint || signal.jsonLdCount > 0 ? 3 : 1),
+            0,
+            16,
+          )
+        : 16,
+      maxScore: 16,
+      note: localIntentRelevant
+        ? `Address ${signal.hasAddressSignal ? "yes" : "no"} · phone ${signal.hasPhoneContact ? "yes" : "no"} · GBP hints ${signal.hasGoogleBusinessHint ? "yes" : "no"}`
+        : "Not a local-intent business profile",
+    },
+    {
+      label: "Duplication risk",
+      score: signal.lexicalDiversity >= 0.34 ? 12 : signal.lexicalDiversity >= 0.24 ? 8 : 4,
+      maxScore: 12,
+      note:
+        signal.lexicalDiversity >= 0.34
+          ? "Healthy language variety"
+          : signal.lexicalDiversity >= 0.24
+            ? "Moderate repetition"
+            : "High repetition risk",
+    },
+  ];
+
+  const score = clamp(
+    Math.round(
+      rubric.reduce((total, item) => total + item.score, 0) /
+        rubric.reduce((total, item) => total + item.maxScore, 0) *
+        100,
+    ),
+    0,
+    100,
+  );
+
+  return {
+    score,
+    title: signal.titleText,
+    metaDescription: signal.metaDescriptionText,
+    h1: signal.h1Text,
+    h2Count: signal.h2Count,
+    h3Count: signal.h3Count,
+    wordCount: signal.wordCount,
+    headingsCount: signal.headingsCount,
+    internalLinkCount: signal.internalLinkCount,
+    hasReviewKeywords: signal.hasReviewKeywords,
+    hasPricingLink: signal.hasPricingLink,
+    hasClearCtaText: signal.hasClearCtaText,
+    imageAltRatio: Number(signal.imageAltRatio.toFixed(2)),
+    localIntentRelevant,
+    rubric,
+    suggestedCopy: buildSuggestedCopy(signal, signal.fetchUrl, industry, goal),
+    diagnosticSummary: `On ${hostname}, your homepage clarity score is ${score}/100. ${
+      signal.titleText ? `Your current title is “${signal.titleText.slice(0, 82)}${signal.titleText.length > 82 ? "…" : ""}”.` : "No clear title was detected."
+    } ${
+      signal.h1Text
+        ? `Your main heading is “${signal.h1Text.slice(0, 90)}${signal.h1Text.length > 90 ? "…" : ""}”.`
+        : "A single clear H1 is missing."
+    } A business owner reading this needs one clear offer, one clear next step, and immediate trust cues. ${
+      signal.hasPricingLink ? "A pricing path exists." : "A pricing path is not obvious."
+    } ${signal.hasFaqHint ? "FAQ intent appears in the page content." : "FAQ intent is not obvious in source content."} ${
+      localIntentRelevant && !signal.hasAddressSignal ? "Local trust/location signals appear weak for map and local intent." : ""
+    }`,
+  };
+}
+
 function buildNarrative(result: {
   scores: AuditScores;
   topFindings: AuditCheck[];
@@ -1009,7 +1397,12 @@ function scoreDiffLabel(category: AuditCategory, competitor: number, mine: numbe
   return `${category}: ${competitor} vs your ${mine}`;
 }
 
-function buildCompetitorComparison(domain: string, competitorScores: AuditScores, myScores: AuditScores): CompetitorResult {
+function buildCompetitorComparison(
+  domain: string,
+  competitorScores: AuditScores,
+  myScores: AuditScores,
+  competitorAudit: AuditResult,
+): CompetitorResult {
   const categories: Array<{ category: AuditCategory; competitor: number; mine: number }> = [
     { category: "Speed", competitor: competitorScores.speed, mine: myScores.speed },
     { category: "SEO", competitor: competitorScores.seo, mine: myScores.seo },
@@ -1035,6 +1428,12 @@ function buildCompetitorComparison(domain: string, competitorScores: AuditScores
     scores: competitorScores,
     topWins,
     topGaps,
+    titleLength: competitorAudit.contentClarity.title.length,
+    hasMetaDescription: Boolean(competitorAudit.contentClarity.metaDescription),
+    hasCanonical: Boolean(competitorAudit.checks.find((check) => check.id === "canonical" && check.status === "green")),
+    hasJsonLd: Boolean(competitorAudit.checks.find((check) => check.id === "json-ld" && check.status !== "red")),
+    hasCta: Boolean(competitorAudit.checks.find((check) => check.id === "cta-above-fold" && check.status !== "red")),
+    contentDepth: competitorAudit.contentClarity.wordCount,
   };
 }
 
@@ -1081,6 +1480,15 @@ async function buildAudit(input: AuditInput, options: BuildOptions = {}): Promis
   const scores = computeScores(checks);
   const sortedFindings = sortFindings(checks);
   const topFindings = sortedFindings.slice(0, 10);
+  const contentClarity = buildContentClarityScore(signal, input.industry, input.goal);
+  const dashboardScores = buildDashboardScores({
+    signal,
+    scores,
+    speedScore,
+    checks,
+    psi,
+    contentClarityScore: contentClarity.score,
+  });
 
   const leakTypes = topFindings
     .filter((check) => check.status !== "green")
@@ -1104,6 +1512,15 @@ async function buildAudit(input: AuditInput, options: BuildOptions = {}): Promis
     goal: input.goal,
   });
 
+  const trustAuthority = clamp(Math.round(scores.trust * 0.62 + scores.visibility * 0.38), 0, 100);
+  const pillars = {
+    overall: dashboardScores.overall,
+    performance: dashboardScores.performance,
+    seo: dashboardScores.seo,
+    contentClarity: contentClarity.score,
+    trustAuthority,
+  } as const;
+
   let competitors: CompetitorResult[] | undefined;
   if (!options.skipCompetitors && input.competitors?.length) {
     const competitorAudits = await Promise.all(
@@ -1120,7 +1537,7 @@ async function buildAudit(input: AuditInput, options: BuildOptions = {}): Promis
           },
           { skipCompetitors: true, includePsi: false },
         );
-        return buildCompetitorComparison(normalizeCompetitorDomain(domain), competitorAudit.scores, scores);
+        return buildCompetitorComparison(normalizeCompetitorDomain(domain), competitorAudit.scores, scores, competitorAudit);
       }),
     );
     competitors = competitorAudits.filter((item): item is CompetitorResult => Boolean(item));
@@ -1140,6 +1557,8 @@ async function buildAudit(input: AuditInput, options: BuildOptions = {}): Promis
     goal: input.goal,
     generatedAt: new Date().toISOString(),
     scores,
+    dashboardScores,
+    pillars,
     categories: [
       { category: "Speed", score: scores.speed, rag: toRag(scores.speed) },
       { category: "SEO", score: scores.seo, rag: toRag(scores.seo) },
@@ -1153,15 +1572,32 @@ async function buildAudit(input: AuditInput, options: BuildOptions = {}): Promis
     pageExperience: {
       source: psi ? "hybrid" : "heuristic",
       scriptCount: signal.scriptCount,
+      headScriptCount: signal.headScriptCount,
       imageCount: signal.imageCount,
       domEstimate: signal.domEstimate,
       estimatedLoadComplexity: heuristic.estimatedLoadComplexity,
+      ttfbEstimateMs: heuristic.ttfbEstimateMs,
+      fcpMs: psi?.fcpMs,
       lcpMs: psi?.lcpMs,
+      tbtMs: psi?.tbtMs,
+      siMs: psi?.siMs,
       cls: psi?.cls,
       inpMs: psi?.inpMs,
       psiPerformance: psi?.performanceScore,
+      cwvStatus: psi ? psi.cwvStatus : "Estimated",
     },
     visibilitySignals,
+    contentClarity,
+    businessSnapshot: {
+      hostname: new URL(signal.fetchUrl).hostname.replace(/^www\./i, ""),
+      isHttps: signal.fetchUrl.startsWith("https://"),
+      titleText: signal.titleText,
+      h1Text: signal.h1Text,
+      hasEmail: signal.hasEmailContact,
+      hasPhone: signal.hasPhoneContact,
+      hasAddress: signal.hasAddressSignal,
+      likelySiteType: likelySiteType(signal, input.industry),
+    },
     competitors,
     recommendedModules: recommendedModules.map((module) => ({
       id: module.id,

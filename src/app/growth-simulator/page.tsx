@@ -26,8 +26,13 @@ type GrowthSimulatorPageProps = {
     readinessScore?: string;
     topActions?: string;
     visitors?: string;
+    monthlyLeads?: string;
     conversionRate?: string;
     avgOrderValue?: string;
+    auditRunId?: string;
+    domain?: string;
+    businessName?: string;
+    website?: string;
   }>;
 };
 
@@ -46,6 +51,7 @@ export default async function GrowthSimulatorPage({ searchParams }: GrowthSimula
   const params = await searchParams;
   const readinessScore = Number(params.readinessScore);
   const monthlyVisitors = Number(params.visitors);
+  const monthlyLeads = Number(params.monthlyLeads);
   const conversionRate = Number(params.conversionRate);
   const avgOrderValue = Number(params.avgOrderValue);
   const prefill = {
@@ -54,8 +60,12 @@ export default async function GrowthSimulatorPage({ searchParams }: GrowthSimula
     readinessScore: Number.isFinite(readinessScore) ? readinessScore : undefined,
     topActions: parseTopActions(params.topActions),
     monthlyVisitors: Number.isFinite(monthlyVisitors) && monthlyVisitors > 0 ? monthlyVisitors : undefined,
+    monthlyLeads: Number.isFinite(monthlyLeads) && monthlyLeads > 0 ? monthlyLeads : undefined,
     conversionRate: Number.isFinite(conversionRate) && conversionRate > 0 ? conversionRate : undefined,
     avgOrderValue: Number.isFinite(avgOrderValue) && avgOrderValue > 0 ? avgOrderValue : undefined,
+    auditRunId: params.auditRunId,
+    domain: params.domain || params.website,
+    businessName: params.businessName,
   };
 
   return (

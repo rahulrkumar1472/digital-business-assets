@@ -12,6 +12,7 @@ import {
 } from "@react-pdf/renderer";
 
 import { parseCompetitorList, runWebsiteGrowthAudit } from "@/lib/scans/audit-engine";
+import { logAuditEvent } from "@/lib/scans/audit-tracking";
 import type { AuditResult, RAG } from "@/lib/scans/audit-types";
 import { siteConfig } from "@/lib/site";
 
@@ -252,19 +253,45 @@ function buildAuditPdfDocument(options: {
   const stageWeak = weakestStage(audit);
 
   const categoryCards = [
-    { label: "Overall", value: audit.scores.overall, rag: ragLabelColor(audit.scores.overall >= 80 ? "green" : audit.scores.overall >= 50 ? "amber" : "red") },
-    { label: "Speed", value: audit.scores.speed, rag: ragLabelColor(audit.scores.speed >= 80 ? "green" : audit.scores.speed >= 50 ? "amber" : "red") },
-    { label: "SEO", value: audit.scores.seo, rag: ragLabelColor(audit.scores.seo >= 80 ? "green" : audit.scores.seo >= 50 ? "amber" : "red") },
     {
-      label: "Conversion",
-      value: audit.scores.conversion,
-      rag: ragLabelColor(audit.scores.conversion >= 80 ? "green" : audit.scores.conversion >= 50 ? "amber" : "red"),
+      label: "Overall",
+      value: audit.dashboardScores.overall,
+      rag: ragLabelColor(
+        audit.dashboardScores.overall >= 90 ? "green" : audit.dashboardScores.overall >= 50 ? "amber" : "red",
+      ),
     },
-    { label: "Trust", value: audit.scores.trust, rag: ragLabelColor(audit.scores.trust >= 80 ? "green" : audit.scores.trust >= 50 ? "amber" : "red") },
     {
-      label: "Visibility",
-      value: audit.scores.visibility,
-      rag: ragLabelColor(audit.scores.visibility >= 80 ? "green" : audit.scores.visibility >= 50 ? "amber" : "red"),
+      label: "Performance",
+      value: audit.dashboardScores.performance,
+      rag: ragLabelColor(
+        audit.dashboardScores.performance >= 90 ? "green" : audit.dashboardScores.performance >= 50 ? "amber" : "red",
+      ),
+    },
+    {
+      label: "SEO",
+      value: audit.dashboardScores.seo,
+      rag: ragLabelColor(audit.dashboardScores.seo >= 90 ? "green" : audit.dashboardScores.seo >= 50 ? "amber" : "red"),
+    },
+    {
+      label: "Accessibility",
+      value: audit.dashboardScores.accessibility,
+      rag: ragLabelColor(
+        audit.dashboardScores.accessibility >= 90 ? "green" : audit.dashboardScores.accessibility >= 50 ? "amber" : "red",
+      ),
+    },
+    {
+      label: "Best Practices",
+      value: audit.dashboardScores.bestPractices,
+      rag: ragLabelColor(
+        audit.dashboardScores.bestPractices >= 90 ? "green" : audit.dashboardScores.bestPractices >= 50 ? "amber" : "red",
+      ),
+    },
+    {
+      label: "Customer Experience",
+      value: audit.dashboardScores.customerExperience,
+      rag: ragLabelColor(
+        audit.dashboardScores.customerExperience >= 90 ? "green" : audit.dashboardScores.customerExperience >= 50 ? "amber" : "red",
+      ),
     },
   ];
 
@@ -318,9 +345,41 @@ function buildAuditPdfDocument(options: {
             <View key={card.label} style={{ ...styles.card, width: "31%" }}>
               <Text style={styles.tinyLabel}>{card.label}</Text>
               <Text style={styles.scoreValue}>{card.value}/100</Text>
-              <Text style={{ ...styles.ragBadge, ...card.rag }}>{card.value >= 80 ? "GREEN" : card.value >= 50 ? "AMBER" : "RED"}</Text>
+              <Text style={{ ...styles.ragBadge, ...card.rag }}>{card.value >= 90 ? "GREEN" : card.value >= 50 ? "AMBER" : "RED"}</Text>
             </View>
           ))}
+        </View>
+
+        <Text style={styles.sectionTitle}>Google Insights metrics</Text>
+        <View style={{ ...styles.card }}>
+          <Text style={{ ...styles.bodyMuted }}>
+            {audit.pageExperience.source === "hybrid"
+              ? "PSI connected: live Lighthouse metrics available."
+              : "Estimate mode: connect PSI key for live Lighthouse metrics."}
+          </Text>
+          <View style={{ marginTop: 8, ...styles.row }}>
+            <View style={{ ...styles.card, width: "32%" }}>
+              <Text style={styles.tinyLabel}>LCP</Text>
+              <Text style={{ marginTop: 3, fontSize: 11, color: "#f1f7fd" }}>
+                {typeof audit.pageExperience.lcpMs === "number" ? `${audit.pageExperience.lcpMs}ms` : "Estimated"}
+              </Text>
+            </View>
+            <View style={{ ...styles.card, width: "32%" }}>
+              <Text style={styles.tinyLabel}>INP</Text>
+              <Text style={{ marginTop: 3, fontSize: 11, color: "#f1f7fd" }}>
+                {typeof audit.pageExperience.inpMs === "number" ? `${audit.pageExperience.inpMs}ms` : "Estimated"}
+              </Text>
+            </View>
+            <View style={{ ...styles.card, width: "32%" }}>
+              <Text style={styles.tinyLabel}>CLS</Text>
+              <Text style={{ marginTop: 3, fontSize: 11, color: "#f1f7fd" }}>
+                {typeof audit.pageExperience.cls === "number" ? audit.pageExperience.cls.toString() : "Estimated"}
+              </Text>
+            </View>
+          </View>
+          <Text style={{ marginTop: 6, ...styles.bodyMuted }}>
+            Core Web Vitals status: {audit.pageExperience.cwvStatus}
+          </Text>
         </View>
 
         <Text style={styles.sectionTitle}>Top 3 actions</Text>
@@ -339,6 +398,29 @@ function buildAuditPdfDocument(options: {
         <Text style={styles.sectionTitle}>Narrative</Text>
         <View style={styles.card}>
           <Text style={styles.bodyMuted}>{audit.narrative.whyItMatters}</Text>
+        </View>
+
+        <Text style={styles.sectionTitle}>What customers feel</Text>
+        <View style={styles.card}>
+          <Text style={styles.bodyMuted}>
+            {audit.dashboardScores.customerExperience >= 90
+              ? "Visitors can understand your offer quickly and move to action with low friction."
+              : audit.dashboardScores.customerExperience >= 55
+                ? "Visitors can navigate, but hesitation points still reduce conversion."
+                : "Visitors are likely seeing early friction from speed, offer clarity, and trust cues."}
+          </Text>
+        </View>
+
+        <Text style={styles.sectionTitle}>Top 5 findings snapshot</Text>
+        <View style={styles.col}>
+          {audit.topFindings.slice(0, 5).map((finding) => (
+            <View key={`p2-${finding.id}`} style={styles.card}>
+              <Text style={{ fontSize: 9, fontWeight: 700, color: "#edf7ff" }}>
+                {finding.label} · {finding.status.toUpperCase()}
+              </Text>
+              <Text style={{ marginTop: 2, fontSize: 8.2, color: "#b8cbdb" }}>{finding.fix}</Text>
+            </View>
+          ))}
         </View>
 
         <View style={styles.pageFooter}>
@@ -399,6 +481,34 @@ function buildAuditPdfDocument(options: {
             <Text style={{ marginTop: 2, fontSize: 7.6, color: "#b8cbdb" }}>{finding.fix || "Apply remediation guidance."}</Text>
           </View>
         ))}
+
+        <Text style={styles.sectionTitle}>Content quality</Text>
+        <View style={styles.card}>
+          <Text style={{ fontSize: 10, fontWeight: 700, color: "#edf7ff" }}>
+            Content score: {audit.contentClarity.score}/100
+          </Text>
+          <Text style={{ marginTop: 4, ...styles.bodyMuted }}>{audit.contentClarity.diagnosticSummary}</Text>
+        </View>
+
+        {audit.competitors?.length ? (
+          <>
+            <Text style={styles.sectionTitle}>Competitor benchmark</Text>
+            <View style={styles.col}>
+              {audit.competitors.slice(0, 3).map((competitor) => (
+                <View key={competitor.domain} style={styles.card}>
+                  <Text style={{ fontSize: 9.5, fontWeight: 700, color: "#edf7ff" }}>{competitor.domain}</Text>
+                  <Text style={{ marginTop: 2, ...styles.bodyMuted }}>
+                    Overall {competitor.scores.overall} · SEO {competitor.scores.seo} · Meta {competitor.hasMetaDescription ? "yes" : "no"} · Schema{" "}
+                    {competitor.hasJsonLd ? "yes" : "no"}
+                  </Text>
+                  <Text style={{ marginTop: 2, ...styles.bodyMuted }}>
+                    CTA clarity {competitor.hasCta ? "strong" : "weak"} · Content depth {competitor.contentDepth} words
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </>
+        ) : null}
 
         <Text style={styles.sectionTitle}>14-day rollout</Text>
         <View style={styles.col}>
@@ -496,6 +606,9 @@ export async function GET(request: Request) {
     const goal = searchParams.get("goal")?.trim() || "leads";
     const competitors = parseCompetitorList(searchParams.get("competitors") || undefined);
     const businessName = searchParams.get("businessName")?.trim() || parseHostname(url);
+    const leadId = searchParams.get("leadId")?.trim() || undefined;
+    const reportId = searchParams.get("rid")?.trim() || undefined;
+    const auditRunId = searchParams.get("auditRunId")?.trim() || undefined;
 
     const audit = await runWebsiteGrowthAudit({
       url,
@@ -529,6 +642,18 @@ export async function GET(request: Request) {
     const buffer = await renderToBuffer(doc);
     const bytes = new Uint8Array(buffer);
     const filename = `DBA-Website-Audit-${hostname}-${dateStr}.pdf`;
+
+    await logAuditEvent({
+      type: "pdf_downloaded",
+      leadId,
+      auditRunId,
+      payload: {
+        reportId,
+        url: audit.url,
+        industry,
+        goal,
+      },
+    });
 
     return new NextResponse(bytes, {
       status: 200,

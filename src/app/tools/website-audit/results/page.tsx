@@ -12,6 +12,7 @@ import { absoluteUrl } from "@/lib/seo";
 import { siteConfig } from "@/lib/site";
 import { softwareApplicationSchema } from "@/lib/schema";
 import { parseCompetitorList, runWebsiteGrowthAudit } from "@/lib/scans/audit-engine";
+import { logAuditEvent, upsertAuditRun } from "@/lib/scans/audit-tracking";
 
 type WebsiteAuditResultsQueryPageProps = {
   searchParams: Promise<{
@@ -20,6 +21,8 @@ type WebsiteAuditResultsQueryPageProps = {
     goal?: string;
     competitors?: string;
     businessName?: string;
+    leadId?: string;
+    auditRunId?: string;
   }>;
 };
 
@@ -56,6 +59,9 @@ export default async function WebsiteAuditResultsQueryPage({ searchParams }: Web
   const goal = params.goal?.trim() || "leads";
   const businessName = params.businessName?.trim() || undefined;
   const competitors = parseCompetitorList(params.competitors);
+  const leadId = params.leadId?.trim() || undefined;
+  const auditRunId = params.auditRunId?.trim() || undefined;
+
   const audit = await runWebsiteGrowthAudit({
     url: websiteUrl,
     industry,
@@ -63,6 +69,32 @@ export default async function WebsiteAuditResultsQueryPage({ searchParams }: Web
     competitors,
     businessName,
   });
+  const reportId = `${audit.url}|${audit.generatedAt}|${industry}|${goal}`;
+  const auditRun = await upsertAuditRun({
+    auditRunId,
+    reportId,
+    url: audit.url,
+    leadId,
+    audit,
+  });
+
+  await logAuditEvent({
+    type: "audit_completed",
+    leadId,
+    auditRunId: auditRun?.id,
+    payload: {
+      reportId,
+      url: audit.url,
+      scores: audit.scores,
+      dashboardScores: audit.dashboardScores,
+      pillars: audit.pillars,
+    },
+  });
+
+  const trackedAudit = {
+    ...audit,
+    auditRunId: auditRun?.id,
+  };
 
   return (
     <>
@@ -120,7 +152,7 @@ export default async function WebsiteAuditResultsQueryPage({ searchParams }: Web
       </SectionBlock>
 
       <SectionBlock className="pt-4 pb-20">
-        <WebsiteGrowthReport audit={audit} />
+        <WebsiteGrowthReport audit={trackedAudit} />
       </SectionBlock>
     </>
   );

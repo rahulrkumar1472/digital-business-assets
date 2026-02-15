@@ -1,15 +1,32 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
-import { Check, Download, FileDown, Sparkles } from "lucide-react";
+import {
+  ArrowRight,
+  BarChart3,
+  BadgeCheck,
+  Building2,
+  ChevronRight,
+  Gauge,
+  Globe,
+  Loader2,
+  Sparkles,
+  Target,
+} from "lucide-react";
 
-import { KPICharts } from "@/components/marketing/kpi-charts";
-import { PrimaryCTA } from "@/components/marketing/primary-cta";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { trackEvent } from "@/lib/analytics";
+import { requireLead } from "@/lib/leads/client";
+import {
+  type GrowthGoal,
+  type LocationIntent,
+  type OfferType,
+  type SimulatorInputs,
+  type SimulatorOutput,
+} from "@/lib/simulator/simulator-engine";
 import { cn } from "@/lib/utils";
 
 type SimulatorMode = "preview" | "full";
@@ -23,749 +40,1101 @@ type AIGrowthSimulatorProps = {
     readinessScore?: number;
     topActions?: string[];
     monthlyVisitors?: number;
+    monthlyLeads?: number;
     conversionRate?: number;
     avgOrderValue?: number;
+    auditRunId?: string;
+    domain?: string;
+    businessName?: string;
   };
 };
 
-type TrafficSources = {
-  google: number;
-  meta: number;
-  referrals: number;
-  walkIns: number;
-};
+type WizardStep = 1 | 2 | 3;
 
-type SimulatorState = {
+type FormState = {
+  domain: string;
+  businessName: string;
   industry: string;
-  monthlyRevenue: number;
-  monthlyLeads: number;
-  conversionRate: number;
-  avgOrderValue: number;
-  responseTimeMinutes: number;
-  followUpMaturity: number;
-  reviewCount: number;
-  noShowRate: number;
-  teamSize: number;
-  trafficSources: TrafficSources;
-};
-
-const defaults: SimulatorState = {
-  industry: "trades",
-  monthlyRevenue: 28000,
-  monthlyLeads: 100,
-  conversionRate: 16,
-  avgOrderValue: 560,
-  responseTimeMinutes: 24,
-  followUpMaturity: 2,
-  reviewCount: 35,
-  noShowRate: 24,
-  teamSize: 4,
-  trafficSources: {
-    google: 45,
-    meta: 25,
-    referrals: 20,
-    walkIns: 10,
-  },
-};
-
-const industryPresets: Record<
-  string,
-  { multiplier: number; baselineConversion: number; speedSensitivity: number; label: string }
-> = {
-  trades: { multiplier: 1.1, baselineConversion: 0.17, speedSensitivity: 1.25, label: "Trades" },
-  clinics: { multiplier: 1.05, baselineConversion: 0.21, speedSensitivity: 1.08, label: "Clinics" },
-  gyms: { multiplier: 0.98, baselineConversion: 0.14, speedSensitivity: 1.14, label: "Gyms" },
-  dentists: { multiplier: 1.11, baselineConversion: 0.24, speedSensitivity: 1.05, label: "Dentists" },
-  law: { multiplier: 1.16, baselineConversion: 0.18, speedSensitivity: 1.09, label: "Law Firms" },
-  realestate: { multiplier: 1.07, baselineConversion: 0.16, speedSensitivity: 1.16, label: "Real Estate" },
-  ecom: { multiplier: 0.95, baselineConversion: 0.11, speedSensitivity: 1.12, label: "Ecommerce" },
-  local: { multiplier: 1, baselineConversion: 0.15, speedSensitivity: 1.2, label: "Local Services" },
-};
-
-function clamp(value: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, value));
-}
-
-function toSimulatorIndustry(value?: string): SimulatorState["industry"] {
-  const input = (value || "").toLowerCase();
-  if (!input) return defaults.industry;
-  if (/(ecom|shop|retail|store|d2c)/.test(input)) return "ecom";
-  if (/(local|service|trade|plumb|electric|builder)/.test(input)) return "local";
-  if (/(clinic|medical|health|dental|dentist)/.test(input)) return "clinics";
-  if (/(estate|property|real)/.test(input)) return "realestate";
-  if (/(law|legal)/.test(input)) return "law";
-  if (/(gym|fitness)/.test(input)) return "gyms";
-  return "trades";
-}
-
-function buildInitialState(prefill?: AIGrowthSimulatorProps["prefill"]): SimulatorState {
-  const base: SimulatorState = {
-    ...defaults,
-    trafficSources: { ...defaults.trafficSources },
+  offerType: OfferType;
+  locationIntent: LocationIntent;
+  goal: GrowthGoal;
+  visitors: string;
+  conversionRate: string;
+  closeRate: string;
+  avgOrderValue: string;
+  grossMargin: string;
+  responseTimeMinutes: string;
+  followups: number;
+  leadCapturePoints: {
+    websiteForm: boolean;
+    whatsapp: boolean;
+    phone: boolean;
+    bookingTool: boolean;
   };
+  trustSignals: {
+    reviews: boolean;
+    caseStudies: boolean;
+    guarantees: boolean;
+    certifications: boolean;
+  };
+};
 
-  if (!prefill) {
-    return base;
-  }
+type FormErrors = Partial<Record<"domain" | "industry" | "visitors" | "conversionRate" | "avgOrderValue" | "responseTimeMinutes", string>>;
 
-  base.industry = toSimulatorIndustry(prefill.industry);
-  const readiness = Number.isFinite(prefill.readinessScore) ? clamp(Number(prefill.readinessScore), 20, 95) : null;
-  if (readiness !== null) {
-    base.responseTimeMinutes = Math.round(clamp(50 - readiness * 0.38, 3, 45));
-    base.followUpMaturity = Math.round(clamp((readiness - 18) / 15, 1, 5));
-    base.reviewCount = Math.round(clamp(12 + readiness * 1.6, 10, 220));
-    base.noShowRate = Math.round(clamp(36 - readiness * 0.22, 6, 35));
-    base.conversionRate = Math.round(clamp(9 + readiness * 0.11, 6, 28));
-  }
+type SimulatorApiResponse = {
+  ok: boolean;
+  simulatorRunId?: string;
+  output?: SimulatorOutput;
+  inputs?: SimulatorInputs;
+  message?: string;
+};
 
-  if (Number.isFinite(prefill.conversionRate) && Number(prefill.conversionRate) > 0) {
-    base.conversionRate = clamp(Number(prefill.conversionRate), 0.3, 60);
-  }
-  if (Number.isFinite(prefill.avgOrderValue) && Number(prefill.avgOrderValue) > 0) {
-    base.avgOrderValue = Math.round(clamp(Number(prefill.avgOrderValue), 10, 50000));
-  }
-  if (Number.isFinite(prefill.monthlyVisitors) && Number(prefill.monthlyVisitors) > 0) {
-    const visitors = Number(prefill.monthlyVisitors);
-    const monthlyLeadsFromVisitors = Math.round((visitors * base.conversionRate) / 100);
-    base.monthlyLeads = clamp(monthlyLeadsFromVisitors, 10, 30000);
-    base.monthlyRevenue = Math.max(base.monthlyRevenue, Math.round(base.monthlyLeads * base.avgOrderValue * 0.75));
-  }
+const industryOptions = [
+  "Trades",
+  "Healthcare",
+  "Dental",
+  "Beauty",
+  "Real Estate",
+  "Retail",
+  "Legal",
+  "Hospitality",
+  "Coaching",
+  "SaaS",
+];
 
-  const goal = (prefill.goal || "").toLowerCase();
-  if (goal.includes("sales")) {
-    base.avgOrderValue = Math.round(base.avgOrderValue * 1.15);
-    base.conversionRate = Math.max(6, base.conversionRate - 1);
-  } else if (goal.includes("leads")) {
-    base.monthlyLeads = Math.round(base.monthlyLeads * 1.12);
-  }
+const offerTypeOptions: Array<{ value: OfferType; label: string; help: string }> = [
+  { value: "local-service", label: "Local Service", help: "Calls, bookings, and quote-driven sales" },
+  { value: "ecom", label: "Ecom", help: "Cart and checkout driven revenue" },
+  { value: "lead-gen", label: "Lead Gen", help: "Leads handed to a sales process" },
+  { value: "saas", label: "SaaS", help: "Trial/demo/sign-up led pipeline" },
+];
 
-  const topActionsText = (prefill.topActions || []).join(" ").toLowerCase();
-  if (topActionsText.includes("seo")) {
-    base.trafficSources.google = clamp(base.trafficSources.google + 10, 20, 65);
-    base.trafficSources.meta = clamp(base.trafficSources.meta - 5, 5, 40);
-  }
-  if (topActionsText.includes("follow") || topActionsText.includes("crm")) {
-    base.followUpMaturity = Math.max(1, base.followUpMaturity - 1);
-  }
-  if (topActionsText.includes("call") || topActionsText.includes("chat")) {
-    base.responseTimeMinutes = Math.max(3, base.responseTimeMinutes - 4);
-  }
+const locationIntentOptions: Array<{ value: LocationIntent; label: string }> = [
+  { value: "local", label: "Local" },
+  { value: "national", label: "National" },
+  { value: "international", label: "International" },
+];
 
-  return base;
-}
+const goalOptions: Array<{ value: GrowthGoal; label: string }> = [
+  { value: "more-leads", label: "More leads" },
+  { value: "more-bookings", label: "More bookings" },
+  { value: "more-sales", label: "More sales" },
+  { value: "higher-aov", label: "Higher AOV" },
+  { value: "lower-cpl", label: "Lower CPL" },
+];
 
 function formatCurrency(value: number) {
   return `£${Math.max(0, value).toLocaleString("en-GB", { maximumFractionDigits: 0 })}`;
 }
 
-function normalizeTraffic(traffic: TrafficSources) {
-  const total = traffic.google + traffic.meta + traffic.referrals + traffic.walkIns;
-  if (total <= 0) {
-    return {
-      google: 25,
-      meta: 25,
-      referrals: 25,
-      walkIns: 25,
-    };
-  }
+function toRag(score: number): "green" | "amber" | "red" {
+  if (score >= 90) return "green";
+  if (score >= 50) return "amber";
+  return "red";
+}
 
+function ragClasses(rag: "green" | "amber" | "red") {
+  if (rag === "green") return "border-emerald-400/35 bg-emerald-500/15 text-emerald-200";
+  if (rag === "amber") return "border-amber-400/35 bg-amber-500/15 text-amber-200";
+  return "border-rose-400/35 bg-rose-500/15 text-rose-200";
+}
+
+function parseNumber(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function toOfferType(value?: string): OfferType {
+  const source = (value || "").toLowerCase();
+  if (source.includes("ecom") || source.includes("shop")) return "ecom";
+  if (source.includes("saas") || source.includes("software")) return "saas";
+  if (source.includes("lead")) return "lead-gen";
+  return "local-service";
+}
+
+function toGoal(value?: string): GrowthGoal {
+  const source = (value || "").toLowerCase();
+  if (source.includes("book")) return "more-bookings";
+  if (source.includes("sales")) return "more-sales";
+  if (source.includes("aov") || source.includes("value")) return "higher-aov";
+  if (source.includes("cpl") || source.includes("cost")) return "lower-cpl";
+  return "more-leads";
+}
+
+function inferVisitorsFromPrefill(prefill?: AIGrowthSimulatorProps["prefill"]) {
+  if (typeof prefill?.monthlyVisitors === "number" && prefill.monthlyVisitors > 0) return Math.round(prefill.monthlyVisitors);
+  if (
+    typeof prefill?.monthlyLeads === "number" &&
+    prefill.monthlyLeads > 0 &&
+    typeof prefill?.conversionRate === "number" &&
+    prefill.conversionRate > 0
+  ) {
+    return Math.round((prefill.monthlyLeads * 100) / prefill.conversionRate);
+  }
+  return 2800;
+}
+
+function buildInitialForm(prefill?: AIGrowthSimulatorProps["prefill"]): FormState {
   return {
-    google: (traffic.google / total) * 100,
-    meta: (traffic.meta / total) * 100,
-    referrals: (traffic.referrals / total) * 100,
-    walkIns: (traffic.walkIns / total) * 100,
+    domain: prefill?.domain || "",
+    businessName: prefill?.businessName || "",
+    industry: prefill?.industry || "Local Services",
+    offerType: toOfferType(prefill?.industry),
+    locationIntent: "local",
+    goal: toGoal(prefill?.goal),
+    visitors: String(inferVisitorsFromPrefill(prefill)),
+    conversionRate: typeof prefill?.conversionRate === "number" ? String(prefill.conversionRate) : "",
+    closeRate: "",
+    avgOrderValue: typeof prefill?.avgOrderValue === "number" ? String(prefill.avgOrderValue) : "420",
+    grossMargin: "",
+    responseTimeMinutes:
+      typeof prefill?.readinessScore === "number" ? String(Math.max(4, Math.round(50 - prefill.readinessScore * 0.35))) : "18",
+    followups: typeof prefill?.readinessScore === "number" ? Math.max(1, Math.min(6, Math.round(prefill.readinessScore / 20))) : 2,
+    leadCapturePoints: {
+      websiteForm: true,
+      whatsapp: true,
+      phone: true,
+      bookingTool: false,
+    },
+    trustSignals: {
+      reviews: true,
+      caseStudies: false,
+      guarantees: false,
+      certifications: false,
+    },
   };
 }
 
+function domainFromInput(raw: string) {
+  const trimmed = raw.trim();
+  if (!trimmed) return "";
+  const candidate = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    return new URL(candidate).hostname.replace(/^www\./i, "");
+  } catch {
+    return "";
+  }
+}
+
 export function AIGrowthSimulator({ mode = "preview", className, prefill }: AIGrowthSimulatorProps) {
-  const initialState = useMemo(() => buildInitialState(prefill), [prefill]);
-  const [form, setForm] = useState<SimulatorState>(initialState);
-  const [hasStarted, setHasStarted] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [pdfLoading, setPdfLoading] = useState(false);
+  const searchParams = useSearchParams();
+  const [step, setStep] = useState<WizardStep>(1);
+  const [form, setForm] = useState<FormState>(() => buildInitialForm(prefill));
+  const [assumeConversionDefault, setAssumeConversionDefault] = useState<boolean>(!prefill?.conversionRate);
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [output, setOutput] = useState<SimulatorOutput | null>(null);
+  const [simulatorRunId, setSimulatorRunId] = useState<string | null>(null);
+  const [eventStartedSent, setEventStartedSent] = useState(false);
+
+  const lead = useMemo(() => requireLead(), []);
+  const auditRunId = useMemo(() => prefill?.auditRunId || searchParams.get("auditRunId") || undefined, [prefill?.auditRunId, searchParams]);
+  const reportId = useMemo(() => searchParams.get("rid") || undefined, [searchParams]);
+
+  const prefillStripDomain = useMemo(() => {
+    const explicit = prefill?.domain || searchParams.get("domain") || searchParams.get("website") || "";
+    return domainFromInput(explicit) || domainFromInput(form.domain);
+  }, [form.domain, prefill?.domain, searchParams]);
+
+  const progress = (step / 3) * 100;
+
+  const postEvent = async (
+    type:
+      | "simulator_started"
+      | "simulator_completed"
+      | "simulator_action_clicked"
+      | "simulator_bespoke_plan_clicked"
+      | "simulator_opened",
+    payload: Record<string, unknown>,
+    overrideSimulatorRunId?: string,
+  ) => {
+    try {
+      await fetch("/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type,
+          payload,
+          leadId: lead?.leadId,
+          auditRunId,
+          simulatorRunId: overrideSimulatorRunId || simulatorRunId || undefined,
+        }),
+      });
+    } catch {
+      // best effort
+    }
+  };
 
   useEffect(() => {
-    setForm(initialState);
-  }, [initialState]);
+    void postEvent("simulator_opened", {
+      source: mode,
+      domain: prefillStripDomain || domainFromInput(form.domain) || null,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const startTracking = () => {
-    if (hasStarted) {
+  const validateStep = (targetStep: WizardStep) => {
+    const nextErrors: FormErrors = {};
+
+    if (targetStep === 1) {
+      if (!form.industry.trim()) nextErrors.industry = "Select an industry.";
+      const maybeDomain = domainFromInput(form.domain);
+      if (!maybeDomain) nextErrors.domain = "Enter a valid website URL or domain.";
+    }
+
+    if (targetStep === 2) {
+      const visitors = parseNumber(form.visitors);
+      const aov = parseNumber(form.avgOrderValue);
+
+      if (!visitors || visitors <= 0) nextErrors.visitors = "Enter monthly visitors.";
+      if (!assumeConversionDefault) {
+        const conversion = parseNumber(form.conversionRate);
+        if (!conversion || conversion <= 0) {
+          nextErrors.conversionRate = "Enter conversion rate or use default estimate.";
+        }
+      }
+      if (!aov || aov <= 0) nextErrors.avgOrderValue = "Enter average order value.";
+    }
+
+    if (targetStep === 3) {
+      const response = parseNumber(form.responseTimeMinutes);
+      if (response === null || response <= 0) {
+        nextErrors.responseTimeMinutes = "Enter response time in minutes.";
+      }
+    }
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const runSimulation = async () => {
+    const payload = {
+      leadId: lead?.leadId,
+      auditRunId,
+      domain: form.domain,
+      businessName: form.businessName,
+      industry: form.industry,
+      offerType: form.offerType,
+      locationIntent: form.locationIntent,
+      goal: form.goal,
+      visitors: Number(form.visitors),
+      conversionRate: assumeConversionDefault ? null : Number(form.conversionRate),
+      avgOrderValue: Number(form.avgOrderValue),
+      closeRate: parseNumber(form.closeRate),
+      grossMargin: parseNumber(form.grossMargin),
+      responseTimeMinutes: Number(form.responseTimeMinutes),
+      followups: form.followups,
+      leadCapturePoints: form.leadCapturePoints,
+      trustSignals: form.trustSignals,
+      currency: "GBP",
+    };
+
+    setSubmitting(true);
+    setApiError(null);
+
+    try {
+      const response = await fetch("/api/simulator/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = (await response.json()) as SimulatorApiResponse;
+      if (!response.ok || !data.ok || !data.output) {
+        throw new Error(data.message || "Could not generate simulator output.");
+      }
+
+      setOutput(data.output);
+      if (data.simulatorRunId) setSimulatorRunId(data.simulatorRunId);
+
+      trackEvent("simulator_complete", {
+        score: data.output.summaryScore,
+        goal: form.goal,
+      });
+
+      await postEvent(
+        "simulator_completed",
+        {
+          domain: domainFromInput(form.domain),
+          goal: form.goal,
+          summaryScore: data.output.summaryScore,
+          reportId: reportId || null,
+        },
+        data.simulatorRunId,
+      );
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "Could not generate simulator output.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleContinue = async () => {
+    setApiError(null);
+
+    if (!eventStartedSent) {
+      setEventStartedSent(true);
+      trackEvent("simulator_start", {
+        source: mode,
+      });
+      await postEvent("simulator_started", {
+        domain: domainFromInput(form.domain),
+        goal: form.goal,
+        source: mode,
+      });
+    }
+
+    const valid = validateStep(step);
+    if (!valid) return;
+
+    if (step < 3) {
+      setStep((previous) => (previous + 1) as WizardStep);
       return;
     }
 
-    setHasStarted(true);
-    trackEvent("simulator_start", {
-      source: mode,
+    await runSimulation();
+  };
+
+  const topActionCtaQuery = useMemo(() => {
+    const params = new URLSearchParams({
+      track: "track1",
+      website: domainFromInput(form.domain) || form.domain,
+      industry: form.industry,
+      goal: form.goal,
     });
-  };
+    if (prefillStripDomain) params.set("domain", prefillStripDomain);
+    return params.toString();
+  }, [form.domain, form.goal, form.industry, prefillStripDomain]);
 
-  const result = useMemo(() => {
-    const preset = industryPresets[form.industry] || industryPresets.local;
-    const traffic = normalizeTraffic(form.trafficSources);
+  const renderWizard = () => (
+    <div className="space-y-5 pb-[calc(8.5rem+env(safe-area-inset-bottom))] md:pb-0">
+      <div className="overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/55 shadow-[0_24px_80px_rgba(2,6,23,0.45)]">
+        <div className="space-y-4 border-b border-slate-800 p-5 md:p-6">
+          <div className="flex items-center justify-between gap-3">
+            <span className="inline-flex rounded-full border border-cyan-500/40 bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-100">
+              Step {step} of 3
+            </span>
+            <span className="text-xs text-slate-400">Takes around 2 minutes</span>
+          </div>
 
-    const responseIndex = clamp((45 - form.responseTimeMinutes) / 45, 0, 1);
-    const followUpIndex = clamp(form.followUpMaturity / 5, 0, 1);
-    const reviewsIndex = clamp(form.reviewCount / 280, 0, 1);
-    const showRate = 1 - clamp(form.noShowRate / 100, 0, 0.9);
-    const teamIndex = clamp(form.teamSize / 12, 0, 1);
+          <div>
+            <div className="h-2 overflow-hidden rounded-full bg-slate-800">
+              <div className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-blue-400 transition-all duration-300" style={{ width: `${progress}%` }} />
+            </div>
+            <div className="mt-2 flex justify-between text-[11px] text-slate-400">
+              <span className={cn(step === 1 && "text-cyan-200")}>Business</span>
+              <span className={cn(step === 2 && "text-cyan-200")}>Baseline</span>
+              <span className={cn(step === 3 && "text-cyan-200")}>Friction</span>
+            </div>
+          </div>
 
-    const channelQuality =
-      traffic.google * 0.36 + traffic.meta * 0.24 + traffic.referrals * 0.3 + traffic.walkIns * 0.1;
+          <h3 className="text-2xl font-semibold text-white md:text-3xl">
+            {step === 1
+              ? "Tell us what your business sells"
+              : step === 2
+                ? "Set your baseline numbers"
+                : "Add response + trust friction"}
+          </h3>
+          <p className="text-sm text-slate-300">
+            {step === 1
+              ? "We use this to model the right growth path for your market and goal."
+              : step === 2
+                ? "If you do not know exact numbers, use estimates. We label assumptions clearly."
+                : "This is where most revenue leakage happens. Give practical values, not ideal values."}
+          </p>
+        </div>
 
-    const speedPenalty = clamp((1 - responseIndex) * preset.speedSensitivity, 0, 1.2);
-    const conversionBase = clamp(form.conversionRate / 100, 0.03, 0.78);
-    const blendedConversion = clamp((conversionBase * 0.58 + preset.baselineConversion * 0.42) * preset.multiplier, 0.04, 0.8);
+        <div className="space-y-4 p-5 md:p-6">
+          {step === 1 ? (
+            <>
+              <div className="space-y-1.5">
+                <label className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-[0.12em] text-slate-300 uppercase">
+                  <Globe className="size-3.5 text-cyan-300" />
+                  Website URL
+                </label>
+                <Input
+                  value={form.domain}
+                  onChange={(event) => setForm((previous) => ({ ...previous, domain: event.target.value }))}
+                  placeholder="https://yourbusiness.co.uk"
+                  className="h-12 border-slate-700 bg-slate-950/70 text-base text-slate-100"
+                  inputMode="url"
+                  autoComplete="url"
+                />
+                {errors.domain ? <p className="text-xs text-rose-300">{errors.domain}</p> : null}
+              </div>
 
-    const leadUpliftPct = clamp(
-      6 + speedPenalty * 18 + (1 - followUpIndex) * 16 + (teamIndex < 0.3 ? 8 : 0) + (channelQuality < 30 ? 10 : 0),
-      5,
-      58,
+              <div className="space-y-1.5">
+                <label className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-[0.12em] text-slate-300 uppercase">
+                  <Building2 className="size-3.5 text-cyan-300" />
+                  Business name (optional)
+                </label>
+                <Input
+                  value={form.businessName}
+                  onChange={(event) => setForm((previous) => ({ ...previous, businessName: event.target.value }))}
+                  placeholder="Your business"
+                  className="h-12 border-slate-700 bg-slate-950/70 text-base text-slate-100"
+                />
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold tracking-[0.12em] text-slate-300 uppercase">Industry</label>
+                  <select
+                    value={form.industry}
+                    onChange={(event) => setForm((previous) => ({ ...previous, industry: event.target.value }))}
+                    className="h-12 w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 text-base text-slate-100"
+                  >
+                    {industryOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.industry ? <p className="text-xs text-rose-300">{errors.industry}</p> : null}
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold tracking-[0.12em] text-slate-300 uppercase">Location intent</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {locationIntentOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setForm((previous) => ({ ...previous, locationIntent: option.value }))}
+                        className={cn(
+                          "h-12 rounded-lg border text-xs font-semibold",
+                          form.locationIntent === option.value
+                            ? "border-cyan-400/50 bg-cyan-500/12 text-cyan-100"
+                            : "border-slate-700 bg-slate-950/70 text-slate-300",
+                        )}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold tracking-[0.12em] text-slate-300 uppercase">Offer type</label>
+                  <div className="grid gap-2">
+                    {offerTypeOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setForm((previous) => ({ ...previous, offerType: option.value }))}
+                        className={cn(
+                          "rounded-lg border px-3 py-2 text-left",
+                          form.offerType === option.value
+                            ? "border-cyan-400/50 bg-cyan-500/10"
+                            : "border-slate-700 bg-slate-950/70",
+                        )}
+                      >
+                        <p className="text-sm font-semibold text-white">{option.label}</p>
+                        <p className="text-xs text-slate-400">{option.help}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold tracking-[0.12em] text-slate-300 uppercase">Primary goal</label>
+                  <div className="grid gap-2">
+                    {goalOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setForm((previous) => ({ ...previous, goal: option.value }))}
+                        className={cn(
+                          "h-10 rounded-lg border px-3 text-left text-sm font-semibold",
+                          form.goal === option.value
+                            ? "border-cyan-400/50 bg-cyan-500/10 text-cyan-100"
+                            : "border-slate-700 bg-slate-950/70 text-slate-200",
+                        )}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : null}
+
+          {step === 2 ? (
+            <>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold tracking-[0.12em] text-slate-300 uppercase">Monthly visitors</label>
+                  <Input
+                    value={form.visitors}
+                    onChange={(event) => setForm((previous) => ({ ...previous, visitors: event.target.value }))}
+                    placeholder="2800"
+                    inputMode="numeric"
+                    className="h-12 border-slate-700 bg-slate-950/70 text-base text-slate-100"
+                  />
+                  {errors.visitors ? <p className="text-xs text-rose-300">{errors.visitors}</p> : null}
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-xs font-semibold tracking-[0.12em] text-slate-300 uppercase">Conversion rate %</label>
+                    <button
+                      type="button"
+                      onClick={() => setAssumeConversionDefault((previous) => !previous)}
+                      className="text-[11px] font-semibold text-cyan-200 underline-offset-2 hover:underline"
+                    >
+                      {assumeConversionDefault ? "Using default" : "I don't know"}
+                    </button>
+                  </div>
+                  <Input
+                    value={assumeConversionDefault ? "" : form.conversionRate}
+                    onChange={(event) => setForm((previous) => ({ ...previous, conversionRate: event.target.value }))}
+                    placeholder={assumeConversionDefault ? "Default estimate applied" : "3.2"}
+                    inputMode="decimal"
+                    disabled={assumeConversionDefault}
+                    className="h-12 border-slate-700 bg-slate-950/70 text-base text-slate-100 disabled:opacity-65"
+                  />
+                  <p className="text-[11px] text-slate-400">If you don’t know, use estimate. We label defaults in your report.</p>
+                  {errors.conversionRate ? <p className="text-xs text-rose-300">{errors.conversionRate}</p> : null}
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold tracking-[0.12em] text-slate-300 uppercase">Average order / booking value (£)</label>
+                  <Input
+                    value={form.avgOrderValue}
+                    onChange={(event) => setForm((previous) => ({ ...previous, avgOrderValue: event.target.value }))}
+                    placeholder="420"
+                    inputMode="decimal"
+                    className="h-12 border-slate-700 bg-slate-950/70 text-base text-slate-100"
+                  />
+                  {errors.avgOrderValue ? <p className="text-xs text-rose-300">{errors.avgOrderValue}</p> : null}
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold tracking-[0.12em] text-slate-300 uppercase">Close rate % (optional)</label>
+                  <Input
+                    value={form.closeRate}
+                    onChange={(event) => setForm((previous) => ({ ...previous, closeRate: event.target.value }))}
+                    placeholder="Use default by industry"
+                    inputMode="decimal"
+                    className="h-12 border-slate-700 bg-slate-950/70 text-base text-slate-100"
+                  />
+                </div>
+
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-xs font-semibold tracking-[0.12em] text-slate-300 uppercase">Gross margin % (optional)</label>
+                  <Input
+                    value={form.grossMargin}
+                    onChange={(event) => setForm((previous) => ({ ...previous, grossMargin: event.target.value }))}
+                    placeholder="Leave blank if unknown"
+                    inputMode="decimal"
+                    className="h-12 border-slate-700 bg-slate-950/70 text-base text-slate-100"
+                  />
+                </div>
+              </div>
+            </>
+          ) : null}
+
+          {step === 3 ? (
+            <>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold tracking-[0.12em] text-slate-300 uppercase">Time to first response (minutes)</label>
+                  <Input
+                    value={form.responseTimeMinutes}
+                    onChange={(event) => setForm((previous) => ({ ...previous, responseTimeMinutes: event.target.value }))}
+                    placeholder="18"
+                    inputMode="numeric"
+                    className="h-12 border-slate-700 bg-slate-950/70 text-base text-slate-100"
+                  />
+                  {errors.responseTimeMinutes ? <p className="text-xs text-rose-300">{errors.responseTimeMinutes}</p> : null}
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold tracking-[0.12em] text-slate-300 uppercase">Follow-ups per lead</label>
+                  <div className="grid grid-cols-8 gap-1">
+                    {[0, 1, 2, 3, 4, 5, 6, 7].map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setForm((previous) => ({ ...previous, followups: value }))}
+                        className={cn(
+                          "h-11 rounded-md border text-sm font-semibold",
+                          form.followups === value
+                            ? "border-cyan-400/50 bg-cyan-500/12 text-cyan-100"
+                            : "border-slate-700 bg-slate-950/70 text-slate-300",
+                        )}
+                      >
+                        {value}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2 rounded-xl border border-slate-800 bg-slate-950/65 p-4">
+                <p className="text-xs font-semibold tracking-[0.12em] text-cyan-200 uppercase">Lead capture points</p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {(
+                    [
+                      ["websiteForm", "Website form"],
+                      ["whatsapp", "WhatsApp"],
+                      ["phone", "Phone"],
+                      ["bookingTool", "Booking tool"],
+                    ] as const
+                  ).map(([key, label]) => (
+                    <label key={key} className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-2 text-sm text-slate-200">
+                      <input
+                        type="checkbox"
+                        checked={form.leadCapturePoints[key]}
+                        onChange={(event) =>
+                          setForm((previous) => ({
+                            ...previous,
+                            leadCapturePoints: {
+                              ...previous.leadCapturePoints,
+                              [key]: event.target.checked,
+                            },
+                          }))
+                        }
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2 rounded-xl border border-slate-800 bg-slate-950/65 p-4">
+                <p className="text-xs font-semibold tracking-[0.12em] text-cyan-200 uppercase">Trust signals present</p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {(
+                    [
+                      ["reviews", "Reviews"],
+                      ["caseStudies", "Case studies"],
+                      ["guarantees", "Guarantees"],
+                      ["certifications", "Certifications"],
+                    ] as const
+                  ).map(([key, label]) => (
+                    <label key={key} className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-2 text-sm text-slate-200">
+                      <input
+                        type="checkbox"
+                        checked={form.trustSignals[key]}
+                        onChange={(event) =>
+                          setForm((previous) => ({
+                            ...previous,
+                            trustSignals: {
+                              ...previous.trustSignals,
+                              [key]: event.target.checked,
+                            },
+                          }))
+                        }
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </>
+          ) : null}
+
+          {apiError ? (
+            <div className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">{apiError}</div>
+          ) : null}
+
+          <div className="hidden items-center justify-between gap-3 md:flex">
+            <Button
+              type="button"
+              variant="outline"
+              className="border-slate-700 bg-slate-900/70 text-slate-100 hover:bg-slate-800"
+              disabled={step === 1 || submitting}
+              onClick={() => setStep((previous) => (previous > 1 ? ((previous - 1) as WizardStep) : previous))}
+            >
+              Back
+            </Button>
+            <Button type="button" className="min-w-56 bg-cyan-300 text-slate-950 hover:bg-cyan-200" onClick={() => void handleContinue()} disabled={submitting}>
+              {submitting ? <Loader2 className="size-4 animate-spin" /> : null}
+              {step === 3 ? "Generate growth model" : "Continue"}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4 text-xs text-slate-300">
+        <p className="inline-flex items-center gap-2 font-semibold text-cyan-200">
+          <BadgeCheck className="size-4" />
+          Trust note
+        </p>
+        <p className="mt-1">We never spam. We use this to generate your plan and one clear next-step recommendation.</p>
+      </div>
+
+      <div className="fixed inset-x-0 bottom-[calc(0.7rem+env(safe-area-inset-bottom))] z-[74] px-4 md:hidden">
+        <div className="mx-auto max-w-3xl rounded-2xl border border-slate-700 bg-slate-950/95 p-2 backdrop-blur-xl">
+          <Button
+            type="button"
+            className="h-12 w-full bg-cyan-300 text-base text-slate-950 hover:bg-cyan-200"
+            onClick={() => void handleContinue()}
+            disabled={submitting}
+          >
+            {submitting ? <Loader2 className="size-4 animate-spin" /> : null}
+            {step === 3 ? "Generate growth model" : "Continue"}
+            {!submitting ? <ChevronRight className="size-4" /> : null}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderResults = () => {
+    if (!output) return null;
+
+    const domainLabel = prefillStripDomain || domainFromInput(form.domain) || "your business";
+
+    return (
+      <div className="space-y-6 pb-28 md:pb-0">
+        {prefill ? (
+          <section className="rounded-2xl border border-cyan-500/35 bg-cyan-500/10 p-4">
+            <p className="text-xs font-semibold tracking-[0.14em] text-cyan-200 uppercase">Prefilled from audit</p>
+            <p className="mt-1 text-sm text-slate-200">
+              Based on your site: <span className="font-semibold text-cyan-100">{domainLabel}</span>. We carried over your baseline assumptions and readiness context.
+            </p>
+          </section>
+        ) : null}
+
+        <section className="rounded-2xl border border-cyan-500/35 bg-[linear-gradient(155deg,rgba(34,211,238,0.12),rgba(15,23,42,0.95))] p-5 md:p-6">
+          <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+            <div>
+              <p className="text-xs font-semibold tracking-[0.14em] text-cyan-200 uppercase">Summary score</p>
+              <div className="mt-2 inline-flex h-24 w-24 items-center justify-center rounded-full border border-cyan-400/35 bg-slate-950/70 text-3xl font-semibold text-white">
+                {output.summaryScore}
+              </div>
+              <p className="mt-3 text-sm text-slate-200">For {form.businessName || domainLabel}, this is your current revenue-system readiness out of 100.</p>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              <article className="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+                <p className="text-[11px] text-slate-400">Leads / month</p>
+                <p className="mt-1 text-xl font-semibold text-white">{output.baseline.leadsPerMonth.toLocaleString("en-GB")}</p>
+              </article>
+              <article className="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+                <p className="text-[11px] text-slate-400">Sales / month</p>
+                <p className="mt-1 text-xl font-semibold text-white">{output.baseline.salesPerMonth.toLocaleString("en-GB")}</p>
+              </article>
+              <article className="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+                <p className="text-[11px] text-slate-400">Revenue / month</p>
+                <p className="mt-1 text-xl font-semibold text-white">{formatCurrency(output.baseline.revenuePerMonth)}</p>
+              </article>
+              <article className="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+                <p className="text-[11px] text-slate-400">Profit / month</p>
+                <p className="mt-1 text-xl font-semibold text-white">
+                  {typeof output.baseline.profitPerMonth === "number" ? formatCurrency(output.baseline.profitPerMonth) : "Add margin to calculate"}
+                </p>
+              </article>
+            </div>
+          </div>
+          <p className="mt-3 text-xs text-slate-300">
+            Assumptions used: {output.assumptions.defaultsUsed.length ? output.assumptions.defaultsUsed.join(", ") : "all custom values"}.
+          </p>
+        </section>
+
+        <section className="rounded-2xl border border-slate-800 bg-slate-900/55 p-5 md:p-6">
+          <p className="text-xs font-semibold tracking-[0.14em] text-cyan-200 uppercase">Google Insights-style readiness metrics</p>
+          <div className="mt-3 -mx-1 overflow-x-auto pb-1 xl:mx-0 xl:overflow-visible">
+            <div className="flex min-w-max gap-2 px-1 xl:grid xl:min-w-0 xl:grid-cols-5 xl:px-0">
+              {output.metrics.map((metric) => {
+                const rag = toRag(metric.score);
+                return (
+                  <article key={metric.key} className="w-[235px] rounded-xl border border-slate-800 bg-slate-950/72 p-3 xl:w-auto">
+                    <p className="text-[11px] text-slate-400">{metric.label}</p>
+                    <p className="mt-1 text-2xl font-semibold text-white">{metric.score}</p>
+                    <span className={`mt-1 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${ragClasses(rag)}`}>{rag}</span>
+
+                    <details className="mt-2 rounded-md border border-slate-800 bg-slate-900/60 p-2 text-xs">
+                      <summary className="cursor-pointer font-semibold text-cyan-200">Explain this score</summary>
+                      <p className="mt-2 text-slate-300">{metric.whatItMeans}</p>
+                      <p className="mt-1 text-slate-300">Business impact: {metric.whyItMatters}</p>
+                      <ul className="mt-1.5 space-y-1 text-slate-400">
+                        {metric.nextSteps.map((step) => (
+                          <li key={step}>• {step}</li>
+                        ))}
+                      </ul>
+                      <Button
+                        asChild
+                        size="sm"
+                        variant="outline"
+                        className="mt-2 h-8 border-slate-700 bg-slate-900/70 text-[11px] text-slate-100 hover:bg-slate-800"
+                      >
+                        <Link
+                          href={metric.fixModule.href}
+                          onClick={() =>
+                            void postEvent("simulator_action_clicked", {
+                              action: "metric_fix",
+                              metric: metric.label,
+                              href: metric.fixModule.href,
+                              domain: domainLabel,
+                            })
+                          }
+                        >
+                          Fix this
+                        </Link>
+                      </Button>
+                    </details>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-slate-800 bg-slate-900/55 p-5 md:p-6">
+          <p className="text-xs font-semibold tracking-[0.14em] text-cyan-200 uppercase">Projected uplift scenarios</p>
+          <div className="mt-3 grid gap-3 md:grid-cols-3">
+            {output.scenarios.map((scenario) => (
+              <article key={scenario.key} className="rounded-xl border border-slate-800 bg-slate-950/72 p-4">
+                <p className="text-sm font-semibold text-white">{scenario.label}</p>
+                <ul className="mt-2 space-y-1 text-xs text-slate-300">
+                  <li>Conversion uplift: +{scenario.conversionUpliftPct}%</li>
+                  <li>Close-rate uplift: +{scenario.closeRateUpliftPct}%</li>
+                  <li>Response-time impact: +{scenario.responseTimeImprovementPct}%</li>
+                </ul>
+                <div className="mt-3 rounded-lg border border-slate-800 bg-slate-900/70 p-2 text-xs text-slate-200">
+                  <p>+{scenario.projectedLeadDelta.toLocaleString("en-GB")} leads/month</p>
+                  <p>+{scenario.projectedSalesDelta.toLocaleString("en-GB")} sales/month</p>
+                  <p className="font-semibold text-cyan-200">+{formatCurrency(scenario.projectedRevenueDelta)}/month</p>
+                </div>
+                <p className="mt-2 text-xs text-slate-400">{scenario.businessValue}</p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    void postEvent("simulator_action_clicked", {
+                      action: "scenario_selected",
+                      scenario: scenario.key,
+                      domain: domainLabel,
+                    })
+                  }
+                  className="mt-2 text-xs font-semibold text-cyan-200 underline-offset-2 hover:underline"
+                >
+                  Mark this as target scenario
+                </button>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-slate-800 bg-slate-900/55 p-5 md:p-6">
+          <p className="text-xs font-semibold tracking-[0.14em] text-cyan-200 uppercase">Weakest stage funnel</p>
+          <div className="mt-3 grid gap-2 md:grid-cols-5">
+            {output.funnel.stages.map((stage) => (
+              <article
+                key={stage.key}
+                className={cn(
+                  "rounded-xl border p-3",
+                  stage.key === output.funnel.weakestStage.key
+                    ? "border-rose-400/45 bg-rose-500/10"
+                    : "border-slate-800 bg-slate-950/72",
+                )}
+              >
+                <p className="text-[11px] text-slate-400">{stage.label}</p>
+                <p className="mt-1 text-lg font-semibold text-white">{stage.score}</p>
+                <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${ragClasses(stage.rag)}`}>{stage.rag}</span>
+              </article>
+            ))}
+          </div>
+          <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950/70 p-4">
+            <p className="text-sm font-semibold text-white">Weakest stage: {output.funnel.weakestStage.label}</p>
+            <ul className="mt-2 space-y-1 text-sm text-slate-300">
+              {output.funnel.explanation.map((item) => (
+                <li key={item}>• {item}</li>
+              ))}
+            </ul>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {output.recommendedModules.slice(0, 3).map((module) => (
+                <Button
+                  key={module.id}
+                  asChild
+                  size="sm"
+                  variant="outline"
+                  className="border-slate-700 bg-slate-900/70 text-slate-100 hover:bg-slate-800"
+                >
+                  <Link
+                    href={module.href}
+                    onClick={() =>
+                      void postEvent("simulator_action_clicked", {
+                        action: "funnel_module_click",
+                        module: module.title,
+                        href: module.href,
+                        domain: domainLabel,
+                      })
+                    }
+                  >
+                    {module.title}
+                  </Link>
+                </Button>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-cyan-500/30 bg-[linear-gradient(155deg,rgba(34,211,238,0.1),rgba(2,6,23,0.94))] p-5 md:p-6">
+          <p className="text-xs font-semibold tracking-[0.14em] text-cyan-200 uppercase">Top 5 moves that move numbers next</p>
+          <div className="mt-3 space-y-3">
+            {output.topMoves.map((action, index) => (
+              <article key={action.id} className="rounded-xl border border-slate-800 bg-slate-950/72 p-4">
+                <p className="text-xs font-semibold tracking-[0.12em] text-cyan-200 uppercase">Move {index + 1}</p>
+                <h3 className="mt-1 text-lg font-semibold text-white">{action.title}</h3>
+                <p className="mt-2 text-sm text-slate-300">{action.why}</p>
+                <p className="mt-1 text-xs text-slate-400">Business impact: {action.businessImpact}</p>
+                <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                  <span className="rounded-full border border-slate-700 bg-slate-900/75 px-2 py-0.5 text-slate-200">Uplift +{action.upliftLowPct}% to +{action.upliftHighPct}%</span>
+                  <span className="rounded-full border border-slate-700 bg-slate-900/75 px-2 py-0.5 text-slate-200">Effort: {action.effort}</span>
+                  <span className="rounded-full border border-slate-700 bg-slate-900/75 px-2 py-0.5 text-slate-200">Impact: {action.timeToImpact}</span>
+                </div>
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                  <Button
+                    asChild
+                    size="sm"
+                    variant="outline"
+                    className="border-slate-700 bg-slate-900/70 text-slate-100 hover:bg-slate-800"
+                  >
+                    <Link
+                      href={action.diy.href}
+                      onClick={() =>
+                        void postEvent("simulator_action_clicked", {
+                          action: "diy_click",
+                          move: action.title,
+                          href: action.diy.href,
+                          domain: domainLabel,
+                        })
+                      }
+                    >
+                      DIY: {action.diy.label}
+                    </Link>
+                  </Button>
+                  <Button asChild size="sm" className="bg-cyan-300 text-slate-950 hover:bg-cyan-200">
+                    <Link
+                      href={`${action.doneForYou.href}&${topActionCtaQuery}`}
+                      onClick={() =>
+                        void postEvent("simulator_bespoke_plan_clicked", {
+                          action: "bespoke_plan",
+                          move: action.title,
+                          href: action.doneForYou.href,
+                          domain: domainLabel,
+                        })
+                      }
+                    >
+                      {action.doneForYou.label}
+                    </Link>
+                  </Button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-slate-800 bg-slate-900/55 p-5 md:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-white">Need a done-for-you rollout?</p>
+              <p className="text-xs text-slate-300">We can implement this as Track 1 and own delivery with you.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                asChild
+                variant="outline"
+                className="border-slate-700 bg-slate-900/70 text-slate-100 hover:bg-slate-800"
+              >
+                <Link href="/services">View modules</Link>
+              </Button>
+              <Button asChild className="bg-cyan-300 text-slate-950 hover:bg-cyan-200">
+                <Link
+                  href={`/bespoke-plan?${topActionCtaQuery}`}
+                  onClick={() =>
+                    void postEvent("simulator_bespoke_plan_clicked", {
+                      action: "final_cta",
+                      domain: domainLabel,
+                    })
+                  }
+                >
+                  Create Bespoke Plan
+                  <ArrowRight className="size-4" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            variant="ghost"
+            className="mt-4 pl-0 text-slate-300 hover:bg-transparent hover:text-cyan-200"
+            onClick={() => {
+              setOutput(null);
+              setStep(1);
+            }}
+          >
+            Re-run simulator with different assumptions
+          </Button>
+        </section>
+
+        <div className="fixed inset-x-0 bottom-[calc(0.65rem+env(safe-area-inset-bottom))] z-[66] px-4 md:hidden">
+          <div className="mx-auto max-w-3xl rounded-2xl border border-slate-700 bg-slate-950/95 p-2 backdrop-blur-xl">
+            <div className="grid grid-cols-2 gap-2">
+              <Button asChild className="h-11 bg-cyan-300 text-sm text-slate-950 hover:bg-cyan-200">
+                <Link href={`/bespoke-plan?${topActionCtaQuery}`}>Create plan</Link>
+              </Button>
+              <Button asChild variant="outline" className="h-11 border-slate-700 bg-slate-900/75 text-sm text-slate-100 hover:bg-slate-800">
+                <Link href="/services">Open modules</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
     );
-
-    const bookingUpliftPct = clamp(
-      8 + speedPenalty * 20 + (1 - showRate) * 18 + (1 - reviewsIndex) * 10 + (1 - followUpIndex) * 14,
-      6,
-      62,
-    );
-
-    const projectedLeads = form.monthlyLeads * (1 + leadUpliftPct / 100);
-    const projectedConversion = clamp(blendedConversion * (1 + bookingUpliftPct / 100), 0.05, 0.84);
-
-    const currentBookings = form.monthlyLeads * blendedConversion * showRate;
-    const projectedBookings = projectedLeads * projectedConversion * clamp(showRate + 0.06, 0.45, 0.98);
-
-    const currentRevenueEstimate = Math.max(form.monthlyRevenue, currentBookings * form.avgOrderValue);
-    const projectedRevenueEstimate = projectedBookings * form.avgOrderValue;
-    const revenueDelta = Math.max(0, projectedRevenueEstimate - currentRevenueEstimate);
-
-    const recoveredRevenueLow = revenueDelta * 0.7;
-    const recoveredRevenueHigh = revenueDelta * 1.28;
-
-    const speedToLeadScore = clamp(
-      Math.round(
-        22 +
-          responseIndex * 36 +
-          followUpIndex * 14 +
-          (1 - clamp(form.noShowRate / 100, 0, 1)) * 12 +
-          (traffic.google >= 35 ? 6 : 0) +
-          (traffic.referrals >= 20 ? 5 : 0) +
-          Math.min(5, form.teamSize),
-      ),
-      0,
-      100,
-    );
-
-    const leakDiagnosis = [
-      {
-        label: "Slow response speed is leaking ready-to-buy leads.",
-        score: form.responseTimeMinutes * preset.speedSensitivity,
-      },
-      {
-        label: "Follow-up consistency is too low to protect conversion.",
-        score: (5 - form.followUpMaturity) * 8,
-      },
-      {
-        label: "No-show prevention is underpowered for current booking volume.",
-        score: form.noShowRate * 0.9,
-      },
-      {
-        label: "Traffic mix depends too heavily on low-intent sources.",
-        score: Math.max(0, traffic.walkIns + traffic.meta - 45),
-      },
-      {
-        label: "Review authority and trust assets are not strong enough yet.",
-        score: Math.max(0, 140 - form.reviewCount) * 0.45,
-      },
-    ]
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 3)
-      .map((item) => item.label);
-
-    const moduleRecommendations = [
-      {
-        label: "Website conversion layer",
-        href: "/services/website-starter-build",
-        reason: "Clarify offer and capture intent faster.",
-        checked: traffic.google > 30 || conversionBase < 0.18,
-      },
-      {
-        label: "Missed-call recovery",
-        href: "/services/call-tracking-missed-call-capture",
-        reason: "Recover demand before competitors reply.",
-        checked: form.responseTimeMinutes > 12,
-      },
-      {
-        label: "CRM + workflow automation",
-        href: "/services/follow-up-automation",
-        reason: "Enforce follow-up and stage progression.",
-        checked: form.followUpMaturity < 4,
-      },
-      {
-        label: "Booking + reminders",
-        href: "/services/booking-system-setup",
-        reason: "Reduce no-show loss and improve attendance.",
-        checked: form.noShowRate > 12,
-      },
-      {
-        label: "SEO + AEO growth layer",
-        href: "/services/seo-upgrade-pack",
-        reason: "Increase qualified demand and answer visibility.",
-        checked: traffic.google < 35 || reviewsIndex < 0.4,
-      },
-    ];
-
-    const starterModules = moduleRecommendations.filter((module) => module.checked);
-
-    return {
-      speedToLeadScore,
-      leakDiagnosis,
-      currentBookings,
-      projectedBookings,
-      currentRevenueEstimate,
-      projectedRevenueEstimate,
-      recoveredRevenueLow,
-      recoveredRevenueHigh,
-      leadUpliftPct,
-      bookingUpliftPct,
-      starterModules,
-      moduleRecommendations,
-      traffic,
-    };
-  }, [form]);
-
-  const scoreRadius = 48;
-  const scoreCircumference = 2 * Math.PI * scoreRadius;
-  const scoreOffset = scoreCircumference - (scoreCircumference * result.speedToLeadScore) / 100;
-
-  const starterModuleList = result.starterModules.map((module) => module.label).join(", ");
-  const bookingHref = `/book?industry=${encodeURIComponent(form.industry)}&score=${result.speedToLeadScore}&revenue=${Math.round(result.currentRevenueEstimate)}&leads=${form.monthlyLeads}&goals=${encodeURIComponent(`Focus on: ${starterModuleList || "Core conversion stack"}`)}`;
-
-  const updateNumber = (key: keyof Omit<SimulatorState, "industry" | "trafficSources">, value: string) => {
-    startTracking();
-    const parsed = Number(value);
-    setForm((previous) => ({
-      ...previous,
-      [key]: Number.isFinite(parsed) ? Math.max(0, parsed) : 0,
-    }));
-  };
-
-  const updateIndustry = (value: string) => {
-    startTracking();
-    setForm((previous) => ({ ...previous, industry: value }));
-  };
-
-  const updateTraffic = (key: keyof TrafficSources, value: string) => {
-    startTracking();
-    const parsed = Number(value);
-    setForm((previous) => ({
-      ...previous,
-      trafficSources: {
-        ...previous.trafficSources,
-        [key]: Number.isFinite(parsed) ? Math.max(0, parsed) : 0,
-      },
-    }));
-  };
-
-  const exportPayload = {
-    generatedAt: new Date().toISOString(),
-    inputs: form,
-    outputs: {
-      speedToLeadScore: result.speedToLeadScore,
-      leadUpliftPct: Number(result.leadUpliftPct.toFixed(1)),
-      bookingUpliftPct: Number(result.bookingUpliftPct.toFixed(1)),
-      recoveredRevenueRange: {
-        low: Math.round(result.recoveredRevenueLow),
-        high: Math.round(result.recoveredRevenueHigh),
-      },
-      currentBookings: Number(result.currentBookings.toFixed(1)),
-      projectedBookings: Number(result.projectedBookings.toFixed(1)),
-      leakDiagnosis: result.leakDiagnosis,
-      recommendedModules: result.starterModules,
-    },
-    note: "Projection only. Not a revenue guarantee.",
-  };
-
-  const exportSummary = JSON.stringify(exportPayload, null, 2);
-
-  const exportPlan = async () => {
-    startTracking();
-
-    try {
-      await navigator.clipboard.writeText(exportSummary);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    } catch {
-      const blob = new Blob([exportSummary], { type: "application/json;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = "growth-simulator-summary.json";
-      anchor.click();
-      URL.revokeObjectURL(url);
-    }
-  };
-
-  const downloadPdf = async () => {
-    setPdfLoading(true);
-    startTracking();
-
-    try {
-      const response = await fetch("/api/simulator/pdf", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(exportPayload),
-      });
-
-      if (!response.ok) {
-        throw new Error("Could not generate PDF.");
-      }
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = "growth-plan-summary.pdf";
-      anchor.click();
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("[simulator] pdf export failed", error);
-    } finally {
-      setPdfLoading(false);
-    }
   };
 
   return (
     <div
       className={cn(
-        "rounded-3xl border border-cyan-500/28 bg-[linear-gradient(160deg,rgba(56,189,248,0.16),rgba(15,23,42,0.94))] p-6 shadow-[0_30px_90px_rgba(2,6,23,0.62)] md:p-8",
+        "rounded-3xl border border-cyan-500/28 bg-[linear-gradient(160deg,rgba(56,189,248,0.16),rgba(15,23,42,0.94))] p-5 shadow-[0_30px_90px_rgba(2,6,23,0.62)] md:p-8",
         className,
       )}
     >
-      <div className="grid gap-8 xl:grid-cols-[1fr_1fr]">
-        <div>
-          <p className="text-xs font-semibold tracking-[0.2em] text-cyan-300 uppercase">AI Growth Simulator</p>
-          <h3 className="mt-3 text-3xl font-semibold text-white md:text-4xl">Model your leaks, speed score, and revenue upside</h3>
-          <p className="mt-3 text-sm text-slate-300">Use realistic numbers to estimate recovered revenue and decide which modules to install first.</p>
-          {prefill ? (
-            <div className="mt-4 rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-3">
-              <p className="text-xs font-semibold tracking-[0.12em] text-cyan-200 uppercase">Prefilled from your audit report</p>
-              <p className="mt-1 text-xs text-slate-200">
-                Industry: {prefill.industry || "service"} · Goal: {prefill.goal || "leads"} · Search readiness:{" "}
-                {typeof prefill.readinessScore === "number" ? prefill.readinessScore : "n/a"}
-              </p>
-              {typeof prefill.monthlyVisitors === "number" || typeof prefill.conversionRate === "number" || typeof prefill.avgOrderValue === "number" ? (
-                <p className="mt-1 text-xs text-slate-300">
-                  Assumptions:{" "}
-                  {typeof prefill.monthlyVisitors === "number"
-                    ? `Visitors ${Math.round(prefill.monthlyVisitors).toLocaleString("en-GB")} · `
-                    : ""}
-                  {typeof prefill.conversionRate === "number" ? `Conv ${prefill.conversionRate.toFixed(1)}% · ` : ""}
-                  {typeof prefill.avgOrderValue === "number" ? `AOV ${formatCurrency(prefill.avgOrderValue)}` : ""}
-                </p>
-              ) : null}
-              {prefill.topActions?.length ? (
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {prefill.topActions.slice(0, 3).map((action) => (
-                    <span key={action} className="rounded-full border border-slate-700 bg-slate-900/80 px-2 py-0.5 text-[11px] text-slate-200">
-                      {action}
-                    </span>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          ) : null}
+      <header className="mb-5 space-y-3">
+        <p className="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.2em] text-cyan-300 uppercase">
+          <Sparkles className="size-3.5" />
+          AI Growth Simulator
+        </p>
+        <h3 className="text-3xl font-semibold text-white md:text-4xl">Model your revenue system before you spend more</h3>
+        <p className="max-w-3xl text-sm text-slate-300 md:text-base">
+          You get a consultant-grade model: what this means, why it matters, and what to do next. Built for business owners, not analysts.
+        </p>
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2 sm:col-span-2">
-              <label className="text-xs tracking-[0.08em] text-slate-400 uppercase">Industry</label>
-              <select
-                value={form.industry}
-                onChange={(event) => updateIndustry(event.target.value)}
-                className="h-10 w-full rounded-md border border-slate-700 bg-slate-950/70 px-3 text-sm text-slate-100"
-              >
-                {Object.entries(industryPresets).map(([value, preset]) => (
-                  <option key={value} value={value}>
-                    {preset.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs tracking-[0.08em] text-slate-400 uppercase">Monthly Revenue (£)</label>
-              <Input
-                type="number"
-                value={form.monthlyRevenue}
-                onChange={(event) => updateNumber("monthlyRevenue", event.target.value)}
-                className="border-slate-700 bg-slate-950/70 text-slate-100"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs tracking-[0.08em] text-slate-400 uppercase">Monthly Leads</label>
-              <Input
-                type="number"
-                value={form.monthlyLeads}
-                onChange={(event) => updateNumber("monthlyLeads", event.target.value)}
-                className="border-slate-700 bg-slate-950/70 text-slate-100"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs tracking-[0.08em] text-slate-400 uppercase">Conversion Rate (%)</label>
-              <Input
-                type="number"
-                value={form.conversionRate}
-                onChange={(event) => updateNumber("conversionRate", event.target.value)}
-                className="border-slate-700 bg-slate-950/70 text-slate-100"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs tracking-[0.08em] text-slate-400 uppercase">Avg Order Value (£)</label>
-              <Input
-                type="number"
-                value={form.avgOrderValue}
-                onChange={(event) => updateNumber("avgOrderValue", event.target.value)}
-                className="border-slate-700 bg-slate-950/70 text-slate-100"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs tracking-[0.08em] text-slate-400 uppercase">Response Time (min)</label>
-              <Input
-                type="number"
-                value={form.responseTimeMinutes}
-                onChange={(event) => updateNumber("responseTimeMinutes", event.target.value)}
-                className="border-slate-700 bg-slate-950/70 text-slate-100"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs tracking-[0.08em] text-slate-400 uppercase">Team Size</label>
-              <Input
-                type="number"
-                value={form.teamSize}
-                onChange={(event) => updateNumber("teamSize", event.target.value)}
-                className="border-slate-700 bg-slate-950/70 text-slate-100"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs tracking-[0.08em] text-slate-400 uppercase">Follow-up Maturity (0-5)</label>
-              <Input
-                type="number"
-                value={form.followUpMaturity}
-                onChange={(event) => updateNumber("followUpMaturity", event.target.value)}
-                className="border-slate-700 bg-slate-950/70 text-slate-100"
-                min={0}
-                max={5}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs tracking-[0.08em] text-slate-400 uppercase">Review Count</label>
-              <Input
-                type="number"
-                value={form.reviewCount}
-                onChange={(event) => updateNumber("reviewCount", event.target.value)}
-                className="border-slate-700 bg-slate-950/70 text-slate-100"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs tracking-[0.08em] text-slate-400 uppercase">No-Show Rate (%)</label>
-              <Input
-                type="number"
-                value={form.noShowRate}
-                onChange={(event) => updateNumber("noShowRate", event.target.value)}
-                className="border-slate-700 bg-slate-950/70 text-slate-100"
-              />
-            </div>
-
-            <div className="space-y-2 sm:col-span-2">
-              <label className="text-xs tracking-[0.08em] text-slate-400 uppercase">Traffic Sources (%)</label>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {([
-                  ["google", "Google"],
-                  ["meta", "Meta"],
-                  ["referrals", "Referrals"],
-                  ["walkIns", "Walk-ins"],
-                ] as Array<[keyof TrafficSources, string]>).map(([key, label]) => (
-                  <div key={key} className="rounded-xl border border-slate-800 bg-slate-900/65 p-3">
-                    <p className="text-xs text-slate-400">{label}</p>
-                    <Input
-                      type="number"
-                      value={form.trafficSources[key]}
-                      onChange={(event) => updateTraffic(key, event.target.value)}
-                      className="mt-2 border-slate-700 bg-slate-950/70 text-slate-100"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
+        <div className="grid gap-2 text-xs text-slate-300 sm:grid-cols-3">
+          <div className="rounded-lg border border-slate-800 bg-slate-950/70 px-3 py-2">
+            <p className="inline-flex items-center gap-1.5"><Gauge className="size-3.5 text-cyan-300" /> Real readiness scores</p>
+          </div>
+          <div className="rounded-lg border border-slate-800 bg-slate-950/70 px-3 py-2">
+            <p className="inline-flex items-center gap-1.5"><Target className="size-3.5 text-cyan-300" /> Plain-English business impact</p>
+          </div>
+          <div className="rounded-lg border border-slate-800 bg-slate-950/70 px-3 py-2">
+            <p className="inline-flex items-center gap-1.5"><BarChart3 className="size-3.5 text-cyan-300" /> Click-through module actions</p>
           </div>
         </div>
+      </header>
 
-        <div className="space-y-4 rounded-2xl border border-slate-800 bg-slate-950/72 p-5">
-          <div className="grid gap-4 sm:grid-cols-[0.44fr_0.56fr]">
-            <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
-              <p className="text-xs tracking-[0.08em] text-slate-400 uppercase">Speed-to-lead score</p>
-              <div className="mt-3 flex items-center justify-center">
-                <svg viewBox="0 0 120 120" className="h-30 w-30">
-                  <circle cx="60" cy="60" r={scoreRadius} stroke="rgba(51,65,85,0.85)" strokeWidth="10" fill="none" />
-                  <motion.circle
-                    cx="60"
-                    cy="60"
-                    r={scoreRadius}
-                    stroke="url(#score-gradient)"
-                    strokeWidth="10"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeDasharray={scoreCircumference}
-                    animate={{ strokeDashoffset: scoreOffset }}
-                    transition={{ duration: 0.55, ease: "easeOut" }}
-                    transform="rotate(-90 60 60)"
-                  />
-                  <defs>
-                    <linearGradient id="score-gradient" x1="0" x2="1" y1="0" y2="1">
-                      <stop offset="0%" stopColor="#22d3ee" />
-                      <stop offset="100%" stopColor="#38bdf8" />
-                    </linearGradient>
-                  </defs>
-                  <text x="60" y="64" textAnchor="middle" className="fill-white text-[20px] font-semibold">
-                    {result.speedToLeadScore}
-                  </text>
-                </svg>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
-                <p className="text-xs tracking-[0.08em] text-slate-400 uppercase">Recovered revenue</p>
-                <p className="mt-2 text-lg font-semibold text-cyan-200">
-                  {formatCurrency(result.recoveredRevenueLow)} - {formatCurrency(result.recoveredRevenueHigh)}
-                </p>
-              </div>
-              <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
-                <p className="text-xs tracking-[0.08em] text-slate-400 uppercase">Projected uplift</p>
-                <p className="mt-2 text-sm font-semibold text-white">
-                  Leads +{result.leadUpliftPct.toFixed(0)}% · Bookings +{result.bookingUpliftPct.toFixed(0)}%
-                </p>
-              </div>
-            </div>
-          </div>
+      {output ? renderResults() : renderWizard()}
 
-          <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
-            <p className="text-xs tracking-[0.08em] text-slate-400 uppercase">Before vs After</p>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2 text-sm">
-              <div className="rounded-lg border border-slate-800 bg-slate-950/65 p-3">
-                <p className="text-xs text-slate-400">Current Bookings</p>
-                <p className="mt-1 font-semibold text-white">{result.currentBookings.toFixed(1)}/mo</p>
-              </div>
-              <div className="rounded-lg border border-slate-800 bg-slate-950/65 p-3">
-                <p className="text-xs text-slate-400">Projected Bookings</p>
-                <p className="mt-1 font-semibold text-cyan-200">{result.projectedBookings.toFixed(1)}/mo</p>
-              </div>
-              <div className="rounded-lg border border-slate-800 bg-slate-950/65 p-3">
-                <p className="text-xs text-slate-400">Current Revenue</p>
-                <p className="mt-1 font-semibold text-white">{formatCurrency(result.currentRevenueEstimate)}</p>
-              </div>
-              <div className="rounded-lg border border-slate-800 bg-slate-950/65 p-3">
-                <p className="text-xs text-slate-400">Projected Revenue</p>
-                <p className="mt-1 font-semibold text-cyan-200">{formatCurrency(result.projectedRevenueEstimate)}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
-            <p className="text-xs tracking-[0.08em] text-slate-400 uppercase">Top 3 leak diagnosis</p>
-            <ul className="mt-3 space-y-2 text-sm text-slate-200">
-              {result.leakDiagnosis.map((item) => (
-                <li key={item} className="flex items-start gap-2">
-                  <Sparkles className="mt-0.5 size-4 text-cyan-300" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
-            <p className="text-xs tracking-[0.08em] text-slate-400 uppercase">Starter install modules</p>
-            <div className="mt-3 space-y-2 text-sm text-slate-200">
-              {result.moduleRecommendations.map((module) => (
-                <Link
-                  key={module.label}
-                  href={module.href}
-                  className={cn(
-                    "block rounded-lg border bg-slate-950/65 p-2 transition hover:border-cyan-400/45",
-                    module.checked ? "border-cyan-500/45" : "border-slate-800",
-                  )}
-                >
-                  <p className="flex items-center gap-2 font-semibold text-white">
-                    <span className={cn("inline-flex size-4 items-center justify-center rounded-sm border", module.checked ? "border-cyan-400 bg-cyan-400/20 text-cyan-200" : "border-slate-700 text-transparent") }>
-                      <Check className="size-3" />
-                    </span>
-                    {module.label}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-400">{module.reason}</p>
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          {mode === "full" ? (
-            <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
-              <p className="text-xs tracking-[0.08em] text-slate-400 uppercase">Export summary view</p>
-              <pre className="mt-2 max-h-40 overflow-auto rounded-lg border border-slate-800 bg-slate-950/70 p-3 text-[11px] text-slate-300">
-                {exportSummary}
-              </pre>
-            </div>
-          ) : null}
-
-          {mode === "full" ? <KPICharts /> : null}
-
-          <p className="text-xs text-slate-400">Estimates only. Use this model for planning and prioritisation, not guaranteed financial outcomes.</p>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            {mode === "full" ? (
-              <Button
-                variant="outline"
-                className="border-slate-700 bg-slate-900/50 text-slate-100 hover:bg-slate-800"
-                onClick={exportPlan}
-              >
-                <Download className="size-4" />
-                {copied ? "Copied" : "Export summary"}
-              </Button>
-            ) : (
-              <PrimaryCTA label="Email Me My Plan" className="w-full" size="default" />
-            )}
-
-            <Button
-              asChild
-              className="bg-cyan-300 text-slate-950 hover:bg-cyan-200"
-              onClick={() => {
-                if (typeof window !== "undefined") {
-                  window.localStorage.setItem("dba_simulator_completed_at", new Date().toISOString());
-                }
-
-                trackEvent("simulator_complete", {
-                  source: mode,
-                  score: result.speedToLeadScore,
-                  industry: form.industry,
-                });
-              }}
-            >
-              <Link href={bookingHref}>Book a Call</Link>
-            </Button>
-          </div>
-
-          {mode === "full" ? (
-            <Button
-              variant="outline"
-              className="w-full border-cyan-500/40 bg-cyan-500/10 text-cyan-100 hover:bg-cyan-500/15"
-              onClick={downloadPdf}
-              disabled={pdfLoading}
-            >
-              <FileDown className="size-4" />
-              {pdfLoading ? "Generating PDF..." : "Download Your Plan PDF"}
-            </Button>
-          ) : null}
+      {mode === "preview" && !output ? (
+        <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950/60 p-4 text-xs text-slate-300">
+          <p className="font-semibold text-cyan-200">Want the full simulator workspace?</p>
+          <p className="mt-1">Open the dedicated simulator page for the complete wizard, scenarios, and module routing.</p>
+          <Button asChild size="sm" variant="outline" className="mt-3 border-slate-700 bg-slate-900/75 text-slate-100 hover:bg-slate-800">
+            <Link href="/growth-simulator">Open full simulator</Link>
+          </Button>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }

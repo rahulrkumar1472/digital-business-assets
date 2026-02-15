@@ -8,7 +8,7 @@ import { Copy, FileDown, Mail } from "lucide-react";
 import { MotionReveal } from "@/components/marketing/motion-reveal";
 import { Button } from "@/components/ui/button";
 import { getStoredLead, requireLead, storeLead, type StoredLead } from "@/lib/leads/client";
-import type { AuditCheck, AuditResult, AuditScores, RAG } from "@/lib/scans/audit-types";
+import type { AuditCheck, AuditResult, RAG } from "@/lib/scans/audit-types";
 import { MetricRing } from "@/components/visuals/metric-ring";
 
 type WebsiteGrowthReportProps = {
@@ -38,6 +38,19 @@ type TopAction = {
   diyHref: string;
 };
 
+type PsiSnapshot = {
+  available?: boolean;
+  mode?: "psi" | "estimate";
+  performanceScore?: number;
+  seoScore?: number;
+  accessibilityScore?: number;
+  bestPracticesScore?: number;
+  LCP?: number;
+  INP?: number;
+  CLS?: number;
+  cwvStatus?: "Pass" | "Needs Improvement" | "Fail" | "Estimated";
+};
+
 function emailIsValid(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
@@ -61,13 +74,34 @@ function ragBadgeClasses(rag: RAG) {
 }
 
 function ragFromScore(score: number): RAG {
-  if (score >= 80) {
+  if (score >= 90) {
     return "green";
   }
   if (score >= 50) {
     return "amber";
   }
   return "red";
+}
+
+function cwvStatusLabel(
+  metric: "LCP" | "INP" | "CLS",
+  value?: number,
+): { label: "Pass" | "Needs Improvement" | "Fail" | "Estimated"; className: string } {
+  if (typeof value !== "number") {
+    return { label: "Estimated", className: "border-slate-600/60 bg-slate-700/30 text-slate-200" };
+  }
+
+  const isPass = metric === "LCP" ? value <= 2500 : metric === "INP" ? value <= 200 : value <= 0.1;
+  if (isPass) {
+    return { label: "Pass", className: "border-emerald-400/35 bg-emerald-500/15 text-emerald-200" };
+  }
+
+  const needsImprovement = metric === "LCP" ? value <= 4000 : metric === "INP" ? value <= 500 : value <= 0.25;
+  if (needsImprovement) {
+    return { label: "Needs Improvement", className: "border-amber-400/35 bg-amber-500/15 text-amber-200" };
+  }
+
+  return { label: "Fail", className: "border-rose-400/35 bg-rose-500/15 text-rose-200" };
 }
 
 function toLeadFormState(lead: StoredLead | null, fallbackWebsite: string): LeadFormState {
@@ -142,12 +176,26 @@ function businessImpactLine(check: AuditCheck) {
   return "Lower direct impact, but contributes to cumulative funnel drag.";
 }
 
+function timeToFix(effort: AuditCheck["effort"]) {
+  if (effort === "S") return "Quick";
+  if (effort === "M") return "Medium";
+  return "Long";
+}
+
+function ownerForCategory(category: AuditCheck["category"]) {
+  if (category === "Speed") return "Dev";
+  if (category === "SEO" || category === "Visibility") return "Marketing";
+  return "Owner";
+}
+
 export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
   const pathname = usePathname();
   const [toast, setToast] = useState<string | null>(null);
   const [leadModalOpen, setLeadModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<LeadAction>(null);
   const [leadSubmitting, setLeadSubmitting] = useState(false);
+  const [psiSnapshot, setPsiSnapshot] = useState<PsiSnapshot | null>(null);
+  const [psiLoading, setPsiLoading] = useState(false);
   const [assumptionsOpen, setAssumptionsOpen] = useState(false);
   const [monthlyVisitorsInput, setMonthlyVisitorsInput] = useState("");
   const [conversionRateInput, setConversionRateInput] = useState("");
@@ -159,6 +207,30 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
     [audit.generatedAt, audit.scores.overall, audit.url],
   );
 
+  const logEvent = useCallback(
+    async (
+      type: "module_clicked" | "simulator_opened" | "pdf_downloaded" | "book_call_clicked",
+      payload: Record<string, unknown>,
+    ) => {
+      try {
+        const lead = requireLead();
+        await fetch("/api/events", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type,
+            payload,
+            leadId: lead?.leadId,
+            auditRunId: audit.auditRunId,
+          }),
+        });
+      } catch {
+        // best effort
+      }
+    },
+    [audit.auditRunId],
+  );
+
   const competitorString = useMemo(
     () => (audit.competitors?.length ? audit.competitors.map((item) => item.domain).join(",") : ""),
     [audit.competitors],
@@ -168,10 +240,13 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
     () => ({
       reportId,
       rid: reportId,
+      auditRunId: audit.auditRunId,
       url: audit.url,
       industry: audit.industry || "service",
       goal: audit.goal || "leads",
       scores: audit.scores,
+      dashboardScores: audit.dashboardScores,
+      pillars: audit.pillars,
       topFindings: audit.topFindings.map((finding) => ({
         label: finding.label,
         category: finding.category,
@@ -187,9 +262,7 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
   );
 
   useEffect(() => {
-    if (!toast) {
-      return;
-    }
+    if (!toast) return;
     const timeout = window.setTimeout(() => setToast(null), 2400);
     return () => window.clearTimeout(timeout);
   }, [toast]);
@@ -202,15 +275,40 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
     }));
   }, [audit.url]);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    setPsiLoading(true);
+
+    fetch(`/api/audit/psi?url=${encodeURIComponent(audit.url)}`, {
+      method: "GET",
+      signal: controller.signal,
+      cache: "no-store",
+    })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return (await response.json()) as PsiSnapshot;
+      })
+      .then((data) => {
+        if (!data) return;
+        setPsiSnapshot(data);
+      })
+      .catch(() => {
+        // best effort fallback to heuristic snapshot already in audit payload
+      })
+      .finally(() => {
+        setPsiLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [audit.url]);
+
   const queryBase = useMemo(() => {
     const params = new URLSearchParams({
       url: audit.url,
       industry: audit.industry || "service",
       goal: audit.goal || "leads",
     });
-    if (competitorString) {
-      params.set("competitors", competitorString);
-    }
+    if (competitorString) params.set("competitors", competitorString);
     return params;
   }, [audit.goal, audit.industry, audit.url, competitorString]);
 
@@ -219,15 +317,15 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
   const pdfQuery = useMemo(() => {
     const params = new URLSearchParams(queryBase);
     params.set("rid", reportId);
+    if (audit.auditRunId) params.set("auditRunId", audit.auditRunId);
     return params.toString();
-  }, [queryBase, reportId]);
+  }, [audit.auditRunId, queryBase, reportId]);
 
   const buildPdfHref = useCallback(
-    (businessName?: string) => {
+    (businessName?: string, leadId?: string) => {
       const params = new URLSearchParams(pdfQuery);
-      if (businessName?.trim()) {
-        params.set("businessName", businessName.trim());
-      }
+      if (businessName?.trim()) params.set("businessName", businessName.trim());
+      if (leadId?.trim()) params.set("leadId", leadId.trim());
       return `/tools/website-audit/pdf?${params.toString()}`;
     },
     [pdfQuery],
@@ -244,6 +342,53 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
   );
 
   const defaults = useMemo(() => inferDefaultAssumptions(audit.industry), [audit.industry]);
+  const domainLabel = audit.businessSnapshot.hostname || "your site";
+  const isPsiLive = psiSnapshot?.available === true;
+  const insightScores = useMemo(
+    () => ({
+      performance:
+        typeof psiSnapshot?.performanceScore === "number"
+          ? psiSnapshot.performanceScore
+          : audit.dashboardScores.performance,
+      seo:
+        typeof psiSnapshot?.seoScore === "number"
+          ? psiSnapshot.seoScore
+          : audit.dashboardScores.seo,
+      bestPractices:
+        typeof psiSnapshot?.bestPracticesScore === "number"
+          ? psiSnapshot.bestPracticesScore
+          : audit.dashboardScores.bestPractices,
+      accessibility:
+        typeof psiSnapshot?.accessibilityScore === "number"
+          ? psiSnapshot.accessibilityScore
+          : audit.dashboardScores.accessibility,
+      customerExperience: audit.dashboardScores.customerExperience,
+    }),
+    [audit.dashboardScores, psiSnapshot],
+  );
+
+  const cwv = useMemo(
+    () => ({
+      lcp: typeof psiSnapshot?.LCP === "number" ? psiSnapshot.LCP : audit.pageExperience.lcpMs,
+      inp: typeof psiSnapshot?.INP === "number" ? psiSnapshot.INP : audit.pageExperience.inpMs,
+      cls: typeof psiSnapshot?.CLS === "number" ? psiSnapshot.CLS : audit.pageExperience.cls,
+      status:
+        psiSnapshot?.cwvStatus ||
+        (isPsiLive ? "Pass" : audit.pageExperience.cwvStatus || "Estimated"),
+    }),
+    [audit.pageExperience.cls, audit.pageExperience.cwvStatus, audit.pageExperience.inpMs, audit.pageExperience.lcpMs, isPsiLive, psiSnapshot],
+  );
+
+  const pillarFixHref = useCallback(
+    (pillar: "performance" | "seo" | "bestPractices" | "accessibility" | "customerExperience") => {
+      if (pillar === "performance") return findDiyHref("Speed", audit);
+      if (pillar === "seo") return findDiyHref("SEO", audit);
+      if (pillar === "bestPractices") return findDiyHref("Trust", audit);
+      if (pillar === "accessibility") return findDiyHref("Conversion", audit);
+      return findDiyHref("Conversion", audit);
+    },
+    [audit],
+  );
   const visitorsRaw = Number(monthlyVisitorsInput);
   const conversionRaw = Number(conversionRateInput);
   const orderRaw = Number(avgOrderValueInput);
@@ -256,7 +401,8 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
   const conversionRate = usingDefaultConversion ? defaults.conversionRate : conversionRaw;
   const avgOrderValue = usingDefaultAov ? defaults.avgOrder : orderRaw;
 
-  const readinessScore = Math.round((audit.scores.seo + audit.scores.visibility) / 2);
+  const readinessScore = Math.round((insightScores.seo + audit.scores.visibility) / 2);
+
   const uplift = useMemo(() => {
     const pressure = (100 - audit.scores.overall) / 100;
     const readiness = (100 - readinessScore) / 100;
@@ -285,20 +431,21 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
       readinessScore: String(readinessScore),
       topActions: topActions.map((item) => item.title).join("|"),
       rid: reportId,
+      monthlyLeads: String(Math.max(1, Math.round((visitors * conversionRate) / 100))),
+      domain: audit.businessSnapshot.hostname || "",
     });
 
-    if (!usingDefaultVisitors) {
-      params.set("visitors", String(Math.round(visitors)));
-    }
-    if (!usingDefaultConversion) {
-      params.set("conversionRate", String(Number(conversionRate.toFixed(2))));
-    }
-    if (!usingDefaultAov) {
-      params.set("avgOrderValue", String(Math.round(avgOrderValue)));
-    }
+    if (audit.auditRunId) params.set("auditRunId", audit.auditRunId);
+    if (audit.businessName) params.set("businessName", audit.businessName);
+    if (!usingDefaultVisitors) params.set("visitors", String(Math.round(visitors)));
+    if (!usingDefaultConversion) params.set("conversionRate", String(Number(conversionRate.toFixed(2))));
+    if (!usingDefaultAov) params.set("avgOrderValue", String(Math.round(avgOrderValue)));
 
     return params.toString();
   }, [
+    audit.auditRunId,
+    audit.businessName,
+    audit.businessSnapshot.hostname,
     audit.goal,
     audit.industry,
     conversionRate,
@@ -421,12 +568,16 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
     }
 
     try {
-      await persistLeadAndReport(payload, action === "email" ? "email_report" : "pdf_export");
+      const savedLead = await persistLeadAndReport(payload, action === "email" ? "email_report" : "pdf_export");
       if (action === "email") {
         setToast("Report linked to your email. Delivery workflow is now ready.");
         return;
       }
-      window.location.href = buildPdfHref(payload.businessName);
+      await logEvent("pdf_downloaded", {
+        reportId,
+        source: "results_actions",
+      });
+      window.location.href = buildPdfHref(payload.businessName, savedLead.leadId);
     } catch {
       setToast("Could not save lead details right now. Please try again.");
     }
@@ -461,12 +612,16 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
 
     setLeadSubmitting(true);
     try {
-      await persistLeadAndReport(leadForm, pendingAction === "email" ? "email_report" : "pdf_export");
+      const savedLead = await persistLeadAndReport(leadForm, pendingAction === "email" ? "email_report" : "pdf_export");
       setLeadModalOpen(false);
       if (pendingAction === "email") {
         setToast("Thanks. The report is linked to your contact details.");
       } else {
-        window.location.href = buildPdfHref(leadForm.businessName);
+        await logEvent("pdf_downloaded", {
+          reportId,
+          source: "lead_gate",
+        });
+        window.location.href = buildPdfHref(leadForm.businessName, savedLead.leadId);
       }
       setPendingAction(null);
     } catch {
@@ -476,71 +631,207 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
     }
   };
 
-  const categoryTiles: Array<{ label: string; score: number; key: keyof AuditScores }> = [
-    { label: "Speed", score: audit.scores.speed, key: "speed" },
-    { label: "SEO", score: audit.scores.seo, key: "seo" },
-    { label: "Conversion", score: audit.scores.conversion, key: "conversion" },
-    { label: "Trust", score: audit.scores.trust, key: "trust" },
-    { label: "Visibility", score: audit.scores.visibility, key: "visibility" },
+  const scoreCards: Array<{
+    key: "performance" | "seo" | "accessibility" | "bestPractices" | "customerExperience";
+    label: string;
+    score: number;
+    whatItMeans: string;
+    businessImpact: string;
+    nextSteps: string[];
+    fixHref: string;
+  }> = [
+    {
+      key: "performance",
+      label: "Performance",
+      score: insightScores.performance,
+      whatItMeans: `On ${domainLabel}, this measures how quickly your page loads and becomes usable.`,
+      businessImpact: "Business impact: slower pages lose ready-to-buy visitors before they enquire.",
+      nextSteps: [
+        "Reduce script weight and defer non-critical JavaScript.",
+        "Compress heavy images and improve above-fold rendering.",
+        "Prioritise fast mobile load for first-time visitors.",
+      ],
+      fixHref: pillarFixHref("performance"),
+    },
+    {
+      key: "seo",
+      label: "SEO",
+      score: insightScores.seo,
+      whatItMeans: `On ${domainLabel}, this reflects how clearly search engines can understand and rank your pages.`,
+      businessImpact: "Business impact: weak SEO reduces qualified traffic and raises acquisition costs.",
+      nextSteps: [
+        "Tighten title, meta, canonical, and schema coverage.",
+        "Improve internal links from high-traffic pages to money pages.",
+        "Align headings and service intent with buyer search terms.",
+      ],
+      fixHref: pillarFixHref("seo"),
+    },
+    {
+      key: "bestPractices",
+      label: "Best Practices",
+      score: insightScores.bestPractices,
+      whatItMeans: `On ${domainLabel}, this covers technical hygiene and implementation safety signals.`,
+      businessImpact: "Business impact: weak technical hygiene can reduce trust and add hidden conversion friction.",
+      nextSteps: [
+        "Strengthen HTTPS, policy links, and canonical hygiene.",
+        "Reduce third-party script overhead and technical debt.",
+        "Publish structured data where it supports decision pages.",
+      ],
+      fixHref: pillarFixHref("bestPractices"),
+    },
+    {
+      key: "accessibility",
+      label: "Accessibility",
+      score: insightScores.accessibility,
+      whatItMeans: `On ${domainLabel}, this measures whether all visitors can comfortably use your site on any device.`,
+      businessImpact: "Business impact: better accessibility improves engagement and conversion reach.",
+      nextSteps: [
+        "Use one clear H1 with logical H2/H3 structure.",
+        "Increase ALT coverage on meaningful images.",
+        "Keep tap targets and forms mobile-friendly.",
+      ],
+      fixHref: pillarFixHref("accessibility"),
+    },
+    {
+      key: "customerExperience",
+      label: "Customer Experience",
+      score: insightScores.customerExperience,
+      whatItMeans: `On ${domainLabel}, this is the first-impression score buyers feel in the first 10–20 seconds.`,
+      businessImpact: "Business impact: speed + clarity + trust directly affect lead and booking conversion.",
+      nextSteps: [
+        "Sharpen above-fold offer with one dominant CTA.",
+        "Increase trust cues: reviews, contact clarity, proof.",
+        "Remove friction from form/call/booking paths.",
+      ],
+      fixHref: pillarFixHref("customerExperience"),
+    },
   ];
 
+  const whatCustomersFeel = useMemo(() => {
+    if (insightScores.customerExperience >= 90) {
+      return "Visitors can understand your offer quickly and find the next action with low friction.";
+    }
+    if (insightScores.customerExperience >= 55) {
+      return "Visitors can navigate, but hesitation points still reduce enquiry and booking intent.";
+    }
+    return "Visitors are likely seeing friction early: slower load, unclear offer, and weaker trust cues.";
+  }, [insightScores.customerExperience]);
+
+  const hasLiveCwv =
+    typeof cwv.lcp === "number" || typeof cwv.cls === "number" || typeof cwv.inp === "number";
+
+  const clarityStrengths = useMemo(() => {
+    return [...audit.contentClarity.rubric]
+      .sort((a, b) => b.score / b.maxScore - a.score / a.maxScore)
+      .slice(0, 3);
+  }, [audit.contentClarity.rubric]);
+
+  const clarityWeaknesses = useMemo(() => {
+    return [...audit.contentClarity.rubric]
+      .sort((a, b) => a.score / a.maxScore - b.score / b.maxScore)
+      .slice(0, 3);
+  }, [audit.contentClarity.rubric]);
+
+  const rewriteSuggestions = useMemo(
+    () => [
+      ...audit.contentClarity.suggestedCopy.heroHeadlines.slice(0, 2),
+      audit.contentClarity.suggestedCopy.subheadline,
+      audit.contentClarity.suggestedCopy.ctaRewrite,
+    ],
+    [audit.contentClarity.suggestedCopy],
+  );
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-28 md:pb-0">
       <MotionReveal>
         <section className="rounded-2xl border border-cyan-500/35 bg-[linear-gradient(155deg,rgba(34,211,238,0.12),rgba(15,23,42,0.95))] p-5 md:p-6">
           <div className="grid gap-4 xl:grid-cols-[0.74fr_1.26fr]">
             <div>
-              <p className="text-xs font-semibold tracking-[0.14em] text-cyan-300 uppercase">Overall audit score</p>
-              <MetricRing value={audit.scores.overall} className="mx-auto mt-2" />
-              <p className="mt-2 text-center text-xs text-slate-300">
-                {audit.url}
-              </p>
+              <p className="text-xs font-semibold tracking-[0.14em] text-cyan-300 uppercase">Overall score</p>
+              <MetricRing value={audit.dashboardScores.overall} className="mx-auto mt-2" />
+              <p className="mt-2 text-center text-xs text-slate-300">{audit.url}</p>
               <p className="mt-3 text-sm text-slate-200">{audit.narrative.executiveSummary}</p>
             </div>
-
             <div className="space-y-4">
-              <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
-                {categoryTiles.map((tile) => {
-                  const rag = ragFromScore(tile.score);
-                  return (
-                    <article key={tile.key} className="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
-                      <p className="text-[11px] text-slate-400">{tile.label}</p>
-                      <p className="mt-1 text-lg font-semibold text-white">{tile.score}</p>
-                      <span className={`mt-1 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${ragBadgeClasses(rag)}`}>
-                        {rag}
-                      </span>
-                    </article>
-                  );
-                })}
-              </div>
+              <div className="rounded-xl border border-cyan-500/30 bg-slate-950/75 p-3">
+                <p className="text-[11px] font-semibold tracking-[0.14em] text-cyan-200 uppercase">Google Insights metrics</p>
+                <p className="mt-1 text-xs text-slate-300">
+                  {isPsiLive
+                    ? "PSI live mode connected. Scores include real Lighthouse data."
+                    : psiLoading
+                      ? "Checking PSI live data..."
+                      : "Connect PSI for live scores. Showing heuristic estimate mode for now."}
+                </p>
 
+                <div className="mt-3 -mx-1 overflow-x-auto pb-1 xl:mx-0 xl:overflow-visible">
+                  <div className="flex min-w-max gap-2 px-1 xl:grid xl:min-w-0 xl:grid-cols-5 xl:px-0">
+                    {scoreCards.map((tile) => {
+                      const rag = ragFromScore(tile.score);
+                      return (
+                        <article key={tile.key} className="w-[220px] rounded-xl border border-slate-800 bg-slate-900/60 p-3 xl:w-auto">
+                          <p className="text-[11px] text-slate-400">{tile.label}</p>
+                          <p className="mt-1 text-xl font-semibold text-white">{tile.score}</p>
+                          <span className={`mt-1 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${ragBadgeClasses(rag)}`}>
+                            {rag}
+                          </span>
+                          <details className="mt-2 rounded-md border border-slate-800 bg-slate-950/60 p-2 text-xs">
+                            <summary className="cursor-pointer font-semibold text-cyan-200">Explain this score</summary>
+                            <p className="mt-2 text-slate-300">{tile.whatItMeans}</p>
+                            <p className="mt-1 text-slate-300">{tile.businessImpact}</p>
+                            <ul className="mt-1.5 space-y-1 text-slate-400">
+                              {tile.nextSteps.map((step) => (
+                                <li key={step}>• {step}</li>
+                              ))}
+                            </ul>
+                            <Button asChild size="sm" variant="outline" className="mt-2 h-8 border-slate-700 bg-slate-900/70 text-[11px] text-slate-100 hover:bg-slate-800">
+                              <Link href={tile.fixHref}>Fix this</Link>
+                            </Button>
+                          </details>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                  {([
+                    { label: "LCP", value: cwv.lcp, unit: "ms" as const },
+                    { label: "INP", value: cwv.inp, unit: "ms" as const },
+                    { label: "CLS", value: cwv.cls, unit: "" as const },
+                  ] as const).map((metric) => {
+                    const status = cwvStatusLabel(metric.label, metric.value);
+                    return (
+                      <div key={metric.label} className="rounded-lg border border-slate-800 bg-slate-900/65 p-2.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-[11px] text-slate-400">{metric.label}</p>
+                          <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${status.className}`}>
+                            {status.label}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-sm font-semibold text-white">
+                          {typeof metric.value === "number"
+                            ? `${metric.value}${metric.unit}`
+                            : isPsiLive
+                              ? "Unavailable"
+                              : "Estimated"}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
               <div className="rounded-xl border border-cyan-500/30 bg-slate-950/75 p-3">
                 <p className="text-[11px] font-semibold tracking-[0.14em] text-cyan-200 uppercase">Report actions</p>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="rounded-full border-slate-700 bg-slate-900/75 text-slate-100 hover:bg-slate-800"
-                    onClick={copyShareLink}
-                  >
+                  <Button size="sm" variant="outline" className="rounded-full border-slate-700 bg-slate-900/75 text-slate-100 hover:bg-slate-800" onClick={copyShareLink}>
                     <Copy className="size-3.5" />
                     Copy share link
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="rounded-full border-slate-700 bg-slate-900/75 text-slate-100 hover:bg-slate-800"
-                    onClick={() => requireLeadForAction("pdf")}
-                  >
+                  <Button size="sm" variant="outline" className="rounded-full border-slate-700 bg-slate-900/75 text-slate-100 hover:bg-slate-800" onClick={() => requireLeadForAction("pdf") }>
                     <FileDown className="size-3.5" />
                     Download PDF
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="rounded-full border-slate-700 bg-slate-900/75 text-slate-100 hover:bg-slate-800"
-                    onClick={() => requireLeadForAction("email")}
-                  >
+                  <Button size="sm" variant="outline" className="rounded-full border-slate-700 bg-slate-900/75 text-slate-100 hover:bg-slate-800" onClick={() => requireLeadForAction("email") }>
                     <Mail className="size-3.5" />
                     Email me this report
                   </Button>
@@ -554,48 +845,43 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
 
       <MotionReveal>
         <section className="rounded-2xl border border-slate-800 bg-slate-900/55 p-5 md:p-6">
-          <p className="text-xs font-semibold tracking-[0.14em] text-cyan-300 uppercase">Speed & Page Experience</p>
+          <p className="text-xs font-semibold tracking-[0.14em] text-cyan-300 uppercase">Speed, Page Experience, and Customer Feel</p>
           <div className="mt-3 grid gap-4 lg:grid-cols-[1.08fr_0.92fr]">
             <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-4">
-              <h2 className="text-lg font-semibold text-white">What customers feel on first visit</h2>
-              <p className="mt-2 text-sm text-slate-300">
-                {audit.scores.speed >= 80
-                  ? "Your loading experience is mostly healthy, but you can still tighten conversion pages for better response speed."
-                  : audit.scores.speed >= 55
-                    ? "Page speed is acceptable but inconsistent. Faster rendering and lighter payloads should improve enquiry conversion."
-                    : "Page speed is currently a high-friction point. Slow first impression and interaction latency are likely costing enquiries."}
-              </p>
+              <h2 className="text-lg font-semibold text-white">What customers experience on first visit</h2>
+              <p className="mt-2 text-sm text-slate-300">{whatCustomersFeel}</p>
+              <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900/75 px-3 py-1 text-xs text-slate-200">
+                <span className="font-semibold text-cyan-200">Core Web Vitals:</span>
+                <span>{cwv.status}</span>
+                <span className="text-slate-400">
+                  {isPsiLive ? "PSI live" : audit.pageExperience.source === "hybrid" ? "PSI connected" : "Estimate mode"}
+                </span>
+              </div>
+              <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                <div className="rounded-lg border border-slate-800 bg-slate-900/65 p-2.5"><p className="text-[11px] text-slate-400">LCP</p><p className="text-sm font-semibold text-white">{typeof cwv.lcp === "number" ? `${cwv.lcp}ms` : "Connect PSI"}</p></div>
+                <div className="rounded-lg border border-slate-800 bg-slate-900/65 p-2.5"><p className="text-[11px] text-slate-400">INP</p><p className="text-sm font-semibold text-white">{typeof cwv.inp === "number" ? `${cwv.inp}ms` : "Connect PSI"}</p></div>
+                <div className="rounded-lg border border-slate-800 bg-slate-900/65 p-2.5"><p className="text-[11px] text-slate-400">CLS</p><p className="text-sm font-semibold text-white">{typeof cwv.cls === "number" ? cwv.cls : "Connect PSI"}</p></div>
+              </div>
               <ul className="mt-3 space-y-1.5 text-sm text-slate-200">
-                <li>Scripts detected: {audit.pageExperience.scriptCount}</li>
+                <li>TTFB estimate: {audit.pageExperience.ttfbEstimateMs}ms</li>
+                <li>Head scripts: {audit.pageExperience.headScriptCount}</li>
+                <li>Total scripts: {audit.pageExperience.scriptCount}</li>
                 <li>Images detected: {audit.pageExperience.imageCount}</li>
-                <li>DOM estimate: {audit.pageExperience.domEstimate}</li>
                 <li>Complexity index: {audit.pageExperience.estimatedLoadComplexity}/100</li>
-                {typeof audit.pageExperience.psiPerformance === "number" ? (
-                  <li>PageSpeed mobile: {audit.pageExperience.psiPerformance}/100</li>
-                ) : (
-                  <li>PageSpeed API not configured. Using deterministic fallback heuristic.</li>
-                )}
-                {typeof audit.pageExperience.lcpMs === "number" ? <li>LCP: {audit.pageExperience.lcpMs}ms</li> : null}
-                {typeof audit.pageExperience.cls === "number" ? <li>CLS: {audit.pageExperience.cls}</li> : null}
-                {typeof audit.pageExperience.inpMs === "number" ? <li>INP: {audit.pageExperience.inpMs}ms</li> : null}
+                {!hasLiveCwv ? <li>PSI not connected. Showing heuristic estimates for planning only.</li> : null}
               </ul>
             </div>
-
             <div className="space-y-2">
-              {audit.checks
-                .filter((check) => check.category === "Speed")
-                .map((check) => (
-                  <article key={check.id} className="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-semibold text-white">{check.label}</p>
-                      <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${ragBadgeClasses(check.status)}`}>
-                        {check.status}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-xs text-slate-300">{check.evidence}</p>
-                    <p className="mt-1 text-xs text-slate-400">Fix: {check.fix}</p>
-                  </article>
-                ))}
+              {audit.checks.filter((check) => check.category === "Speed").map((check) => (
+                <article key={check.id} className="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm font-semibold text-white">{check.label}</p>
+                    <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${ragBadgeClasses(check.status)}`}>{check.status}</span>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-300">{check.evidence}</p>
+                  <p className="mt-1 text-xs text-slate-400">Fix: {check.fix}</p>
+                </article>
+              ))}
             </div>
           </div>
         </section>
@@ -603,17 +889,14 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
 
       <MotionReveal>
         <section className="rounded-2xl border border-slate-800 bg-slate-900/55 p-5 md:p-6">
-          <p className="text-xs font-semibold tracking-[0.14em] text-cyan-300 uppercase">Google & Search Readiness</p>
+          <p className="text-xs font-semibold tracking-[0.14em] text-cyan-300 uppercase">What customers see vs what Google sees</p>
           <div className="mt-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3">
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs font-semibold tracking-[0.12em] text-cyan-200 uppercase">Search readiness score</p>
               <p className="text-sm font-semibold text-white">{readinessScore}/100</p>
             </div>
             <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-800">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-blue-400"
-                style={{ width: `${readinessScore}%` }}
-              />
+              <div className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-blue-400" style={{ width: `${readinessScore}%` }} />
             </div>
           </div>
           <div className="mt-3 grid gap-3 md:grid-cols-2">
@@ -624,11 +907,10 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
                   <div key={check.id} className="rounded-lg border border-slate-800 bg-slate-900/65 p-2.5">
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-sm font-semibold text-white">{check.label}</p>
-                      <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${ragBadgeClasses(check.status)}`}>
-                        {check.status}
-                      </span>
+                      <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${ragBadgeClasses(check.status)}`}>{check.status}</span>
                     </div>
-                    <p className="mt-1 text-xs text-slate-300">{check.evidence}</p>
+                    <p className="mt-1 text-xs text-slate-300">What it means: {check.evidence}</p>
+                    <p className="mt-1 text-xs text-slate-400">How to fix: {check.fix}</p>
                   </div>
                 ))}
               </div>
@@ -640,11 +922,10 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
                   <div key={check.id} className="rounded-lg border border-slate-800 bg-slate-900/65 p-2.5">
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-sm font-semibold text-white">{check.label}</p>
-                      <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${ragBadgeClasses(check.status)}`}>
-                        {check.status}
-                      </span>
+                      <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${ragBadgeClasses(check.status)}`}>{check.status}</span>
                     </div>
-                    <p className="mt-1 text-xs text-slate-300">{check.evidence}</p>
+                    <p className="mt-1 text-xs text-slate-300">What it means: {check.evidence}</p>
+                    <p className="mt-1 text-xs text-slate-400">How to fix: {check.fix}</p>
                   </div>
                 ))}
               </div>
@@ -655,40 +936,83 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
 
       <MotionReveal>
         <section className="rounded-2xl border border-slate-800 bg-slate-900/55 p-5 md:p-6">
-          <p className="text-xs font-semibold tracking-[0.14em] text-cyan-300 uppercase">Authority + Visibility Baseline</p>
-          <div className="mt-3 grid gap-3 md:grid-cols-2">
+          <p className="text-xs font-semibold tracking-[0.14em] text-cyan-300 uppercase">Homepage clarity audit</p>
+          <div className="mt-3 grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
             <article className="rounded-xl border border-slate-800 bg-slate-950/70 p-4">
-              <p className="text-xs font-semibold tracking-[0.12em] text-cyan-200 uppercase">Backlinks / authority (baseline)</p>
-              <p className="mt-2 text-sm text-slate-300">
-                {audit.checks.find((check) => check.id === "authority-baseline")?.evidence || "Baseline authority signals not available."}
-              </p>
-              <p className="mt-2 text-xs text-slate-400">
-                Backlinks data not connected. Connect Ahrefs / Search Console (coming soon). Until connected, this uses on-page authority readiness heuristics only.
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                <span className="rounded-full border border-slate-700 bg-slate-900/70 px-2.5 py-1 text-slate-200">Authority readiness: {audit.scores.visibility}/100</span>
-                <span className="rounded-full border border-slate-700 bg-slate-900/70 px-2.5 py-1 text-slate-200">Provider: Not connected</span>
+              <h2 className="text-lg font-semibold text-white">Business snapshot</h2>
+              <ul className="mt-3 space-y-1.5 text-sm text-slate-200">
+                <li>Hostname: {audit.businessSnapshot.hostname}</li>
+                <li>HTTPS: {audit.businessSnapshot.isHttps ? "Yes" : "No"}</li>
+                <li>Title detected: {audit.businessSnapshot.titleText || "Not detected"}</li>
+                <li>H1 detected: {audit.businessSnapshot.h1Text || "Not detected"}</li>
+                <li>
+                  Contact signals: email {audit.businessSnapshot.hasEmail ? "yes" : "no"} · phone {audit.businessSnapshot.hasPhone ? "yes" : "no"} · address {audit.businessSnapshot.hasAddress ? "yes" : "no"}
+                </li>
+                <li>Likely site type: {audit.businessSnapshot.likelySiteType}</li>
+              </ul>
+              <div className="mt-3 rounded-lg border border-slate-800 bg-slate-900/65 p-3">
+                <p className="text-xs font-semibold tracking-[0.12em] text-cyan-200 uppercase">Content clarity score</p>
+                <p className="mt-1 text-2xl font-semibold text-white">{audit.contentClarity.score}/100</p>
+                <p className="mt-1 text-xs text-slate-400">
+                  Word count {audit.contentClarity.wordCount} · H2 {audit.contentClarity.h2Count} · H3 {audit.contentClarity.h3Count} · internal links {audit.contentClarity.internalLinkCount}
+                </p>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  CTA clarity: {audit.contentClarity.hasClearCtaText ? "clear" : "needs work"} · Local intent mode: {audit.contentClarity.localIntentRelevant ? "active" : "not required"}
+                </p>
+              </div>
+              <div className="mt-3 rounded-lg border border-slate-800 bg-slate-900/65 p-3">
+                <p className="text-xs font-semibold tracking-[0.12em] text-cyan-200 uppercase">Extracted metadata</p>
+                <ul className="mt-2 space-y-1.5 text-xs text-slate-300">
+                  <li>Title: {audit.contentClarity.title || "Not detected"}</li>
+                  <li>Meta description: {audit.contentClarity.metaDescription || "Not detected"}</li>
+                  <li>H1: {audit.contentClarity.h1 || "Not detected"}</li>
+                </ul>
               </div>
             </article>
-
-            <article className="rounded-xl border border-slate-800 bg-slate-950/70 p-4">
-              <p className="text-xs font-semibold tracking-[0.12em] text-cyan-200 uppercase">Social + local visibility signals</p>
-              <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-                {[
-                  { label: "Instagram", value: audit.visibilitySignals.socialLinks.instagram },
-                  { label: "Facebook", value: audit.visibilitySignals.socialLinks.facebook },
-                  { label: "LinkedIn", value: audit.visibilitySignals.socialLinks.linkedin },
-                  { label: "TikTok", value: audit.visibilitySignals.socialLinks.tiktok },
-                  { label: "YouTube", value: audit.visibilitySignals.socialLinks.youtube },
-                  { label: "Google Business hint", value: audit.visibilitySignals.hasGoogleBusinessHint },
-                ].map((item) => (
-                  <div key={item.label} className="rounded-lg border border-slate-800 bg-slate-900/65 p-2.5">
-                    <p className="text-xs text-slate-400">{item.label}</p>
-                    <p className={item.value ? "text-sm font-semibold text-emerald-300" : "text-sm font-semibold text-amber-200"}>
-                      {item.value ? "Found" : "Not found"}
-                    </p>
-                  </div>
-                ))}
+            <article className="space-y-3">
+              <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-4">
+                <p className="text-xs font-semibold tracking-[0.12em] text-cyan-200 uppercase">Consultant insight</p>
+                <p className="mt-2 text-sm text-slate-200">{audit.contentClarity.diagnosticSummary}</p>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-4">
+                  <p className="text-xs font-semibold tracking-[0.12em] text-emerald-200 uppercase">3 strongest points</p>
+                  <ul className="mt-2 space-y-1.5 text-xs text-slate-200">
+                    {clarityStrengths.map((item) => (
+                      <li key={`strength-${item.label}`}>• {item.label}: {item.note}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-4">
+                  <p className="text-xs font-semibold tracking-[0.12em] text-amber-200 uppercase">3 key weaknesses</p>
+                  <ul className="mt-2 space-y-1.5 text-xs text-slate-200">
+                    {clarityWeaknesses.map((item) => (
+                      <li key={`weakness-${item.label}`}>• {item.label}: {item.note}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-4">
+                <p className="text-xs font-semibold tracking-[0.12em] text-cyan-200 uppercase">Transparent scoring rubric</p>
+                <div className="mt-2 space-y-2">
+                  {audit.contentClarity.rubric.map((item) => (
+                    <div key={item.label} className="rounded-lg border border-slate-800 bg-slate-900/65 p-2.5">
+                      <div className="flex items-center justify-between gap-2 text-sm">
+                        <p className="font-semibold text-slate-100">{item.label}</p>
+                        <p className="text-slate-200">{item.score}/{item.maxScore}</p>
+                      </div>
+                      <p className="mt-1 text-xs text-slate-400">{item.note}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-4">
+                <p className="text-xs font-semibold tracking-[0.12em] text-cyan-200 uppercase">Rewrite suggestions</p>
+                <ul className="mt-2 space-y-1 text-sm text-slate-200">
+                  {rewriteSuggestions.map((line) => (
+                    <li key={line}>• {line}</li>
+                  ))}
+                </ul>
               </div>
             </article>
           </div>
@@ -704,16 +1028,16 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
             </div>
             <p className="max-w-md text-xs text-slate-400">Severity + impact sorted. Start with red/high items first for fastest commercial lift.</p>
           </div>
-
           <div className="mt-4 overflow-x-auto rounded-xl border border-slate-800">
-            <table className="w-full min-w-[1080px] border-collapse text-sm">
+            <table className="w-full min-w-[1220px] border-collapse text-sm">
               <thead className="bg-slate-950/90 text-left text-xs text-slate-400">
                 <tr>
                   <th className="px-3 py-2 font-medium">Finding</th>
                   <th className="px-3 py-2 font-medium">Category</th>
                   <th className="px-3 py-2 font-medium">Status</th>
-                  <th className="px-3 py-2 font-medium">Effort</th>
                   <th className="px-3 py-2 font-medium">Impact</th>
+                  <th className="px-3 py-2 font-medium">Time to Fix</th>
+                  <th className="px-3 py-2 font-medium">Owner</th>
                   <th className="px-3 py-2 font-medium">Why it matters</th>
                   <th className="px-3 py-2 font-medium">Business impact</th>
                   <th className="px-3 py-2 font-medium">Fix</th>
@@ -724,13 +1048,10 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
                   <tr key={finding.id} className="border-t border-slate-800 bg-slate-950/55 align-top">
                     <td className="px-3 py-2 font-medium text-slate-100">{finding.label}</td>
                     <td className="px-3 py-2 text-slate-300">{finding.category}</td>
-                    <td className="px-3 py-2">
-                      <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${ragBadgeClasses(finding.status)}`}>
-                        {finding.status}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 text-slate-300">{finding.effort}</td>
+                    <td className="px-3 py-2"><span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${ragBadgeClasses(finding.status)}`}>{finding.status}</span></td>
                     <td className="px-3 py-2 text-slate-300">{finding.impact}</td>
+                    <td className="px-3 py-2 text-slate-300">{timeToFix(finding.effort)}</td>
+                    <td className="px-3 py-2 text-slate-300">{ownerForCategory(finding.category)}</td>
                     <td className="px-3 py-2 text-xs text-slate-300">{finding.evidence || "Signal-based issue detected in scan."}</td>
                     <td className="px-3 py-2 text-xs text-slate-300">{businessImpactLine(finding)}</td>
                     <td className="px-3 py-2 text-xs text-slate-300">{finding.fix}</td>
@@ -746,50 +1067,55 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
         <section className="rounded-2xl border border-slate-800 bg-slate-900/55 p-5 md:p-6">
           <p className="text-xs font-semibold tracking-[0.14em] text-cyan-300 uppercase">Competitor benchmark</p>
           {audit.competitors?.length ? (
-            <div className="mt-3 grid gap-3 lg:grid-cols-3">
-              {audit.competitors.map((competitor) => (
-                <article key={competitor.domain} className="rounded-xl border border-slate-800 bg-slate-950/70 p-4">
-                  <p className="text-sm font-semibold text-white">{competitor.domain}</p>
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                    <div className="rounded-md border border-slate-800 bg-slate-900/70 p-2">
-                      <p className="text-slate-400">Overall</p>
-                      <p className="font-semibold text-slate-100">{competitor.scores.overall}</p>
+            <div className="mt-3 space-y-3">
+              <div className="overflow-x-auto rounded-xl border border-slate-800">
+                <table className="w-full min-w-[880px] border-collapse text-sm">
+                  <thead className="bg-slate-950/90 text-left text-xs text-slate-400">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">Competitor</th>
+                      <th className="px-3 py-2 font-medium">Overall</th>
+                      <th className="px-3 py-2 font-medium">SEO</th>
+                      <th className="px-3 py-2 font-medium">Meta</th>
+                      <th className="px-3 py-2 font-medium">Schema</th>
+                      <th className="px-3 py-2 font-medium">CTA Clarity</th>
+                      <th className="px-3 py-2 font-medium">Content Depth</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {audit.competitors.map((competitor) => (
+                      <tr key={competitor.domain} className="border-t border-slate-800 bg-slate-950/55">
+                        <td className="px-3 py-2 font-medium text-slate-100">{competitor.domain}</td>
+                        <td className="px-3 py-2 text-slate-200">{competitor.scores.overall}</td>
+                        <td className="px-3 py-2 text-slate-200">{competitor.scores.seo}</td>
+                        <td className="px-3 py-2 text-slate-200">{competitor.titleLength > 0 ? "Title" : "No title"} · {competitor.hasMetaDescription ? "Meta" : "No meta"}</td>
+                        <td className="px-3 py-2 text-slate-200">{competitor.hasJsonLd ? "Present" : "Missing"}</td>
+                        <td className="px-3 py-2 text-slate-200">{competitor.hasCta ? "Clear" : "Weak"}</td>
+                        <td className="px-3 py-2 text-slate-200">{competitor.contentDepth} words</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="grid gap-3 lg:grid-cols-3">
+                {audit.competitors.map((competitor) => (
+                  <article key={`${competitor.domain}-insight`} className="rounded-xl border border-slate-800 bg-slate-950/70 p-4">
+                    <p className="text-sm font-semibold text-white">{competitor.domain}</p>
+                    <div className="mt-3">
+                      <p className="text-[11px] font-semibold tracking-[0.12em] text-cyan-200 uppercase">Where they are stronger</p>
+                      <ul className="mt-1 space-y-1 text-xs text-slate-300">
+                        {competitor.topWins.length ? competitor.topWins.map((item) => <li key={item}>• {item}</li>) : <li>• No major category advantage detected.</li>}
+                      </ul>
                     </div>
-                    <div className="rounded-md border border-slate-800 bg-slate-900/70 p-2">
-                      <p className="text-slate-400">Speed</p>
-                      <p className="font-semibold text-slate-100">{competitor.scores.speed}</p>
+                    <div className="mt-3">
+                      <p className="text-[11px] font-semibold tracking-[0.12em] text-cyan-200 uppercase">Where you are stronger</p>
+                      <ul className="mt-1 space-y-1 text-xs text-slate-300">
+                        {competitor.topGaps.length ? competitor.topGaps.map((item) => <li key={item}>• {item}</li>) : <li>• No clear category advantage yet.</li>}
+                      </ul>
                     </div>
-                    <div className="rounded-md border border-slate-800 bg-slate-900/70 p-2">
-                      <p className="text-slate-400">SEO</p>
-                      <p className="font-semibold text-slate-100">{competitor.scores.seo}</p>
-                    </div>
-                    <div className="rounded-md border border-slate-800 bg-slate-900/70 p-2">
-                      <p className="text-slate-400">Conversion</p>
-                      <p className="font-semibold text-slate-100">{competitor.scores.conversion}</p>
-                    </div>
-                  </div>
-                  <div className="mt-3">
-                    <p className="text-[11px] font-semibold tracking-[0.12em] text-cyan-200 uppercase">They win because</p>
-                    <ul className="mt-1 space-y-1 text-xs text-slate-300">
-                      {competitor.topWins.length ? (
-                        competitor.topWins.map((item) => <li key={item}>• {item}</li>)
-                      ) : (
-                        <li>• No major category advantage detected.</li>
-                      )}
-                    </ul>
-                  </div>
-                  <div className="mt-3">
-                    <p className="text-[11px] font-semibold tracking-[0.12em] text-cyan-200 uppercase">You are stronger in</p>
-                    <ul className="mt-1 space-y-1 text-xs text-slate-300">
-                      {competitor.topGaps.length ? (
-                        competitor.topGaps.map((item) => <li key={item}>• {item}</li>)
-                      ) : (
-                        <li>• No clear category advantage yet.</li>
-                      )}
-                    </ul>
-                  </div>
-                </article>
-              ))}
+                  </article>
+                ))}
+              </div>
             </div>
           ) : (
             <div className="mt-3 rounded-xl border border-slate-800 bg-slate-950/70 p-4 text-sm text-slate-300">
@@ -813,7 +1139,20 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
                   <p className="mt-2 text-xs text-slate-400">{module.phase}</p>
                   <div className="mt-3 flex flex-col gap-2">
                     <Button asChild size="sm" variant="outline" className="border-slate-700 bg-slate-900/70 text-slate-100 hover:bg-slate-800">
-                      <Link href={module.href}>Open the module that fixes this</Link>
+                      <Link
+                        href={module.href}
+                        onClick={() =>
+                          void logEvent("module_clicked", {
+                            moduleId: module.id,
+                            moduleTitle: module.title,
+                            href: module.href,
+                            source: "recommended_modules",
+                            reportId,
+                          })
+                        }
+                      >
+                        Open the module that fixes this
+                      </Link>
                     </Button>
                     <Button asChild size="sm" className="bg-cyan-300 text-slate-950 hover:bg-cyan-200">
                       <Link
@@ -836,7 +1175,6 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
         <section className="rounded-2xl border border-cyan-500/30 bg-[linear-gradient(155deg,rgba(34,211,238,0.1),rgba(2,6,23,0.94))] p-5 md:p-6">
           <p className="text-xs font-semibold tracking-[0.14em] text-cyan-300 uppercase">Action plan</p>
           <h2 className="mt-1 text-2xl font-semibold text-white">Top 3 actions to close revenue leaks</h2>
-
           <div className="mt-4 grid gap-3 lg:grid-cols-3">
             {topActions.map((action, index) => (
               <article key={`${action.id}-${index}`} className="rounded-xl border border-slate-800 bg-slate-950/72 p-4">
@@ -847,7 +1185,19 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
                 <p className="mt-2 text-xs text-cyan-200">Estimated uplift: +{action.upliftLow}% to +{action.upliftHigh}%</p>
                 <div className="mt-3 flex flex-col gap-2">
                   <Button asChild size="sm" variant="outline" className="border-slate-700 bg-slate-900/70 text-slate-100 hover:bg-slate-800">
-                    <Link href={action.diyHref}>DIY (Track 2)</Link>
+                    <Link
+                      href={action.diyHref}
+                      onClick={() =>
+                        void logEvent("module_clicked", {
+                          moduleTitle: action.title,
+                          href: action.diyHref,
+                          source: "top_actions",
+                          reportId,
+                        })
+                      }
+                    >
+                      DIY (Track 2)
+                    </Link>
                   </Button>
                   <Button asChild size="sm" className="bg-cyan-300 text-slate-950 hover:bg-cyan-200">
                     <Link
@@ -875,11 +1225,7 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
             Assumptions used: Visitors {visitors.toLocaleString("en-GB")} ({usingDefaultVisitors ? "default" : "custom"}) · Conv {conversionRate.toFixed(1)}% ({usingDefaultConversion ? "default" : "custom"}) · AOV {formatCurrency(avgOrderValue)} ({usingDefaultAov ? "default" : "custom"})
           </p>
 
-          <button
-            type="button"
-            onClick={() => setAssumptionsOpen((previous) => !previous)}
-            className="mt-2 text-xs font-semibold text-cyan-300 underline-offset-2 hover:text-cyan-200 hover:underline"
-          >
+          <button type="button" onClick={() => setAssumptionsOpen((previous) => !previous)} className="mt-2 text-xs font-semibold text-cyan-300 underline-offset-2 hover:text-cyan-200 hover:underline">
             {assumptionsOpen ? "Hide assumptions editor" : "Edit assumptions"}
           </button>
 
@@ -887,33 +1233,15 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
             <div className="mt-4 grid gap-3 md:grid-cols-3">
               <article className="rounded-xl border border-slate-800 bg-slate-950/72 p-4">
                 <label className="text-xs font-semibold tracking-[0.12em] text-slate-300 uppercase">Monthly visitors</label>
-                <input
-                  value={monthlyVisitorsInput}
-                  onChange={(event) => setMonthlyVisitorsInput(event.target.value)}
-                  inputMode="numeric"
-                  className="mt-2 h-10 w-full rounded-md border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100"
-                  placeholder={String(defaults.visitors)}
-                />
+                <input value={monthlyVisitorsInput} onChange={(event) => setMonthlyVisitorsInput(event.target.value)} inputMode="numeric" className="mt-2 h-10 w-full rounded-md border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100" placeholder={String(defaults.visitors)} />
               </article>
               <article className="rounded-xl border border-slate-800 bg-slate-950/72 p-4">
                 <label className="text-xs font-semibold tracking-[0.12em] text-slate-300 uppercase">Conversion rate (%)</label>
-                <input
-                  value={conversionRateInput}
-                  onChange={(event) => setConversionRateInput(event.target.value)}
-                  inputMode="decimal"
-                  className="mt-2 h-10 w-full rounded-md border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100"
-                  placeholder={String(defaults.conversionRate)}
-                />
+                <input value={conversionRateInput} onChange={(event) => setConversionRateInput(event.target.value)} inputMode="decimal" className="mt-2 h-10 w-full rounded-md border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100" placeholder={String(defaults.conversionRate)} />
               </article>
               <article className="rounded-xl border border-slate-800 bg-slate-950/72 p-4">
                 <label className="text-xs font-semibold tracking-[0.12em] text-slate-300 uppercase">Average order value</label>
-                <input
-                  value={avgOrderValueInput}
-                  onChange={(event) => setAvgOrderValueInput(event.target.value)}
-                  inputMode="numeric"
-                  className="mt-2 h-10 w-full rounded-md border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100"
-                  placeholder={String(defaults.avgOrder)}
-                />
+                <input value={avgOrderValueInput} onChange={(event) => setAvgOrderValueInput(event.target.value)} inputMode="numeric" className="mt-2 h-10 w-full rounded-md border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100" placeholder={String(defaults.avgOrder)} />
               </article>
             </div>
           ) : null}
@@ -932,7 +1260,9 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
           </div>
 
           <Button asChild className="mt-4 bg-cyan-300 text-slate-950 hover:bg-cyan-200">
-            <Link href={`/growth-simulator?${simulatorQuery}`}>Project my revenue uplift</Link>
+            <Link href={`/growth-simulator?${simulatorQuery}`} onClick={() => void logEvent("simulator_opened", { reportId, source: "results_projected_uplift" })}>
+              Project my revenue uplift
+            </Link>
           </Button>
         </section>
       </MotionReveal>
@@ -949,14 +1279,33 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
           <div className="mt-4 flex flex-wrap gap-3 text-xs">
             <Link href="/services" className="font-semibold text-cyan-300 hover:text-cyan-200">View services</Link>
             <span className="text-slate-600">•</span>
-            <Link href={`/bespoke-plan?track=track1&website=${encodeURIComponent(audit.url)}`} className="font-semibold text-cyan-300 hover:text-cyan-200">
-              Build bespoke plan
+            <Link href={`/bespoke-plan?track=track1&website=${encodeURIComponent(audit.url)}`} className="font-semibold text-cyan-300 hover:text-cyan-200">Build bespoke plan</Link>
+            <span className="text-slate-600">•</span>
+            <Link
+              href={`/book?source=audit-results&website=${encodeURIComponent(audit.url)}`}
+              className="font-semibold text-cyan-300 hover:text-cyan-200"
+              onClick={() => void logEvent("book_call_clicked", { source: "audit_results", reportId })}
+            >
+              Book growth call
             </Link>
             <span className="text-slate-600">•</span>
             <Link href="/tools/website-audit/start" className="font-semibold text-cyan-300 hover:text-cyan-200">Run another scan</Link>
           </div>
         </section>
       </MotionReveal>
+
+      <div className="fixed inset-x-0 bottom-[calc(0.6rem+env(safe-area-inset-bottom))] z-[66] px-4 md:hidden">
+        <div className="mx-auto max-w-3xl rounded-2xl border border-slate-700 bg-slate-950/95 p-2 backdrop-blur-xl">
+          <div className="grid grid-cols-2 gap-2">
+            <Button asChild className="h-11 bg-cyan-300 text-sm text-slate-950 hover:bg-cyan-200">
+              <Link href={`/growth-simulator?${simulatorQuery}`}>Project uplift</Link>
+            </Button>
+            <Button asChild variant="outline" className="h-11 border-slate-700 bg-slate-900/75 text-sm text-slate-100 hover:bg-slate-800">
+              <Link href={`/bespoke-plan?track=track1&website=${encodeURIComponent(audit.url)}`}>Build my plan</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
 
       {leadModalOpen ? (
         <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/80 px-4 backdrop-blur-sm">
@@ -977,39 +1326,12 @@ export function WebsiteGrowthReport({ audit }: WebsiteGrowthReportProps) {
             <p className="mt-1 text-xs text-slate-400">For PDF export we require name, business name, and email. Phone is optional.</p>
 
             <form onSubmit={submitLeadGate} className="mt-4 space-y-3">
-              <input
-                value={leadForm.name}
-                onChange={(event) => setLeadForm((previous) => ({ ...previous, name: event.target.value }))}
-                className="h-10 w-full rounded-md border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100"
-                placeholder="Your name"
-              />
-              <input
-                value={leadForm.businessName}
-                onChange={(event) => setLeadForm((previous) => ({ ...previous, businessName: event.target.value }))}
-                className="h-10 w-full rounded-md border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100"
-                placeholder="Business name"
-              />
-              <input
-                value={leadForm.email}
-                onChange={(event) => setLeadForm((previous) => ({ ...previous, email: event.target.value }))}
-                className="h-10 w-full rounded-md border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100"
-                placeholder="Email"
-                type="email"
-                required
-              />
-              <input
-                value={leadForm.phone}
-                onChange={(event) => setLeadForm((previous) => ({ ...previous, phone: event.target.value }))}
-                className="h-10 w-full rounded-md border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100"
-                placeholder="Phone (optional)"
-              />
+              <input value={leadForm.name} onChange={(event) => setLeadForm((previous) => ({ ...previous, name: event.target.value }))} className="h-10 w-full rounded-md border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100" placeholder="Your name" />
+              <input value={leadForm.businessName} onChange={(event) => setLeadForm((previous) => ({ ...previous, businessName: event.target.value }))} className="h-10 w-full rounded-md border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100" placeholder="Business name" />
+              <input value={leadForm.email} onChange={(event) => setLeadForm((previous) => ({ ...previous, email: event.target.value }))} className="h-10 w-full rounded-md border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100" placeholder="Email" type="email" required />
+              <input value={leadForm.phone} onChange={(event) => setLeadForm((previous) => ({ ...previous, phone: event.target.value }))} className="h-10 w-full rounded-md border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100" placeholder="Phone (optional)" />
               <label className="flex items-start gap-2 text-xs text-slate-300">
-                <input
-                  type="checkbox"
-                  checked={leadForm.consentWeekly}
-                  onChange={(event) => setLeadForm((previous) => ({ ...previous, consentWeekly: event.target.checked }))}
-                  className="mt-0.5"
-                />
+                <input type="checkbox" checked={leadForm.consentWeekly} onChange={(event) => setLeadForm((previous) => ({ ...previous, consentWeekly: event.target.checked }))} className="mt-0.5" />
                 Yes — send occasional practical growth updates.
               </label>
               <Button type="submit" className="w-full" disabled={leadSubmitting}>

@@ -41,13 +41,16 @@ export default function WebsiteAuditStartPage() {
       </SectionBlock>
 
       <SectionBlock className="pt-4">
-        <div className="grid gap-8 xl:grid-cols-[0.95fr_1.05fr]">
+        <div className="mx-auto grid max-w-3xl gap-6">
+          <MotionReveal delay={0.03}>
+            <WebsiteAuditOnboarding />
+          </MotionReveal>
           <MotionReveal>
-            <div className="space-y-4 rounded-3xl border border-slate-800 bg-slate-900/45 p-6">
-              <h2 className="text-2xl font-semibold text-white">What happens after submit</h2>
-              <ul className="space-y-3">
+            <div className="space-y-3 rounded-3xl border border-slate-800 bg-slate-900/40 p-5">
+              <h2 className="text-xl font-semibold text-white">What happens after submit</h2>
+              <ul className="space-y-2.5">
                 {expectations.map((item) => (
-                  <li key={item.title} className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+                  <li key={item.title} className="rounded-xl border border-slate-800 bg-slate-950/60 p-3.5">
                     <p className="inline-flex items-center gap-2 text-sm font-semibold text-white">
                       <item.icon className="size-4 text-cyan-300" />
                       {item.title}
@@ -57,10 +60,6 @@ export default function WebsiteAuditStartPage() {
                 ))}
               </ul>
             </div>
-          </MotionReveal>
-
-          <MotionReveal delay={0.05}>
-            <WebsiteAuditOnboarding />
           </MotionReveal>
         </div>
       </SectionBlock>
